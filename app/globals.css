@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pixel Font */
+.pixel-font {
+  font-family: monospace;
+  letter-spacing: 0.2em;
+}
+
+/* Shine Effect */
+.shine-title {
+  background: linear-gradient(to right, #f4b41a 20%, #ffd700 30%, #fff8dc 70%, #f4b41a 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: shine 4s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Border Gradient */
+.border-gradient {
+  border: 2px solid;
+  border-image-slice: 1;
+  border-image-source: linear-gradient(to right, #f4b41a, #ffd700);
+}
+
+/* Rest of your existing CSS */
+/* ... */
+
