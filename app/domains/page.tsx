@@ -3,52 +3,59 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Header from "../components/header"
-import { fetchDomains, fetchStudents, updateStudentStatus } from "../services/api"
+import { fetchDomains, fetchStudentsByDomain, updateStudentStatus } from "../services/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 
-interface Domain {
-  id: number
-  name: string
-  subDomains: string[]
-}
-
-interface StudentSubDomain {
-  score: number
-  status: "pending" | "accepted" | "rejected"
+interface Question {
+  question: string
+  answer: string
+  options?: string[]
+  selectedOption?: number
 }
 
 interface Student {
-  id: number
-  name: string
   email: string
-  mobile: string
-  domains: {
-    [key: string]: {
-      [key: string]: StudentSubDomain
-    }
-  }
+  round1: Question[]
+  score1: number
+  status: "pending" | "accepted" | "rejected"
+}
+
+interface SubDomainData {
+  items: Student[]
+  last_evaluated_key: string
+}
+
+interface DomainData {
+  [subDomain: string]: SubDomainData
 }
 
 export default function DomainsPage() {
-  // Commented out API calls and state for now
-  // const [domains, setDomains] = useState([])
-  // const [domainsLoading, setDomainsLoading] = useState(true)
-  // const [error, setError] = useState<string | null>(null)
-  const [domains, setDomains] = useState<Domain[]>([])
-  const [students, setStudents] = useState<Student[]>([])
+  const [domains, setDomains] = useState<string[]>([])
+  const [studentsData, setStudentsData] = useState<{ [key: string]: DomainData }>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [domainsData, studentsData] = await Promise.all([fetchDomains(), fetchStudents()])
-        setDomains(domainsData as Domain[])
-        setStudents(studentsData as Student[])
+        const domainsData = (await fetchDomains()) as string[]
+        setDomains(domainsData)
+
+        const studentsPromises = domainsData.map((domain) => fetchStudentsByDomain(domain))
+        const studentsResults = await Promise.all(studentsPromises)
+
+        const newStudentsData: { [key: string]: DomainData } = {}
+        domainsData.forEach((domain, index) => {
+          newStudentsData[domain] = studentsResults[index] as DomainData
+        })
+
+        setStudentsData(newStudentsData)
         setLoading(false)
       } catch (err) {
         setError("Failed to load data. Please try again later.")
@@ -58,48 +65,26 @@ export default function DomainsPage() {
 
     loadData()
   }, [])
-   // useEffect(() => {
-  //   const loadDomains = async () => {
-  //     try {
-  //       const data = await fetchDomains()
-  //       setDomains(data)
-  //     } catch (err) {
-  //       setError("Failed to load domains. Please try again later.")
-  //     } finally {
-  //       setDomainsLoading(false)
-  //     }
-  //   }
 
-  const handleStatus = async (
-    studentId: number,
-    domainName: string,
+  const handleStatusUpdate = async (
+    email: string,
+    domain: string,
     subDomain: string,
-    newStatus: "accepted" | "rejected" | "pending",
+    newStatus: "accepted" | "rejected",
   ) => {
     try {
-      await updateStudentStatus(studentId, domainName, subDomain, newStatus)
-      setStudents((currentStudents) =>
-        currentStudents.map((student) =>
-          student.id === studentId
-            ? {
-                ...student,
-                domains: {
-                  ...student.domains,
-                  [domainName.toLowerCase()]: {
-                    ...student.domains[domainName.toLowerCase()],
-                    [subDomain]: {
-                      ...student.domains[domainName.toLowerCase()][subDomain],
-                      status: newStatus,
-                    },
-                  },
-                },
-              }
-            : student,
-        ),
-      )
+      await updateStudentStatus(email, domain, subDomain, newStatus)
+      setStudentsData((prevData) => {
+        const updatedData = { ...prevData }
+        const student = updatedData[domain][subDomain].items.find((s) => s.email === email)
+        if (student) {
+          student.status = newStatus
+        }
+        return updatedData
+      })
       toast({
         title: "Status Updated",
-        description: `Student status for ${domainName} - ${subDomain} has been updated to ${newStatus}.`,
+        description: `Student ${email} has been ${newStatus}.`,
       })
     } catch (err) {
       toast({
@@ -109,8 +94,7 @@ export default function DomainsPage() {
       })
     }
   }
-  //   loadDomains()
-  // }, [])
+
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
@@ -127,13 +111,13 @@ export default function DomainsPage() {
 
         <div className="grid gap-6">
           {domains.map((domain) => (
-            <Card key={domain.id} className="bg-gray-900 border-gradient">
+            <Card key={domain} className="bg-gray-900 border-gradient">
               <CardHeader>
-                <CardTitle className="text-2xl text-[#f4b41a] pixel-font">{domain.name}</CardTitle>
+                <CardTitle className="text-2xl text-[#f4b41a] pixel-font">{domain}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Accordion type="single" collapsible className="w-full">
-                  {domain.subDomains.map((subDomain) => (
+                  {Object.entries(studentsData[domain]).map(([subDomain, subDomainData]) => (
                     <AccordionItem key={subDomain} value={subDomain}>
                       <AccordionTrigger className="text-xl text-[#e8b974] pixel-font">{subDomain}</AccordionTrigger>
                       <AccordionContent>
@@ -165,89 +149,99 @@ export default function DomainsPage() {
                                 <table className="w-full">
                                   <thead>
                                     <tr className="text-left">
-                                      <th className="p-2">Name</th>
                                       <th className="p-2">Email</th>
-                                      <th className="p-2">Mobile</th>
                                       <th className="p-2">Score</th>
                                       <th className="p-2">Actions</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     <AnimatePresence>
-                                      {students
-                                        .filter(
-                                          (student) =>
-                                            student.domains[domain.name.toLowerCase()] &&
-                                            student.domains[domain.name.toLowerCase()][subDomain] &&
-                                            student.domains[domain.name.toLowerCase()][subDomain].status === status,
-                                        )
+                                      {subDomainData.items
+                                        .filter((student) => student.status === status)
                                         .map((student) => (
                                           <motion.tr
-                                            key={student.id}
+                                            key={student.email}
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -20 }}
-                                            className={`border-b border-gray-700 ${
-                                              status === "accepted"
-                                                ? "bg-green-900"
-                                                : status === "rejected"
-                                                  ? "bg-red-900"
-                                                  : "bg-gray-800"
-                                            }`}
+                                            className="border-b border-gray-700 bg-gray-800"
                                           >
                                             <td className="p-2">
-                                              <span
-                                                className={`font-semibold ${
-                                                  status === "accepted"
-                                                    ? "text-green-300"
-                                                    : status === "rejected"
-                                                      ? "text-red-300"
-                                                      : "text-[#f4b41a]"
-                                                }`}
-                                              >
-                                                {student.name}
-                                              </span>
+                                              <span className="font-semibold text-[#f4b41a]">{student.email}</span>
                                             </td>
-                                            <td className="p-2">{student.email}</td>
-                                            <td className="p-2">{student.mobile}</td>
-                                            <td className="p-2">
-                                              {student.domains[domain.name.toLowerCase()][subDomain].score}
-                                            </td>
-                                            <td className="p-2">
+                                            <td className="p-2">{student.score1}</td>
+                                            <td className="p-2 space-x-2">
+                                              <Dialog>
+                                                <DialogTrigger asChild>
+                                                  <Button
+                                                    onClick={() => setSelectedStudent(student)}
+                                                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                                                  >
+                                                    View Details
+                                                  </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="bg-gray-900 text-white">
+                                                  <DialogHeader>
+                                                    <DialogTitle>Student Details</DialogTitle>
+                                                  </DialogHeader>
+                                                  <div className="mt-4">
+                                                    <h3 className="text-lg font-semibold mb-2">
+                                                      Email: {selectedStudent?.email}
+                                                    </h3>
+                                                    <h4 className="text-md font-semibold mb-2">
+                                                      Score: {selectedStudent?.score1}
+                                                    </h4>
+                                                    <h4 className="text-md font-semibold mb-2">Questions:</h4>
+                                                    {selectedStudent?.round1.map((question, index) => (
+                                                      <div key={index} className="mb-4">
+                                                        <p className="font-semibold">{question.question}</p>
+                                                        {question.options ? (
+                                                          <ul className="list-disc list-inside">
+                                                            {question.options.map((option, optionIndex) => (
+                                                              <li
+                                                                key={optionIndex}
+                                                                className={
+                                                                  optionIndex === question.selectedOption
+                                                                    ? "text-green-500"
+                                                                    : ""
+                                                                }
+                                                              >
+                                                                {option}
+                                                              </li>
+                                                            ))}
+                                                          </ul>
+                                                        ) : (
+                                                          <p className="italic">Answer: {question.answer}</p>
+                                                        )}
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </DialogContent>
+                                              </Dialog>
                                               {status === "pending" && (
-                                                <div className="flex space-x-2">
+                                                <>
                                                   <Button
                                                     onClick={() =>
-                                                      handleStatus(student.id, domain.name, subDomain, "accepted")
+                                                      handleStatusUpdate(student.email, domain, subDomain, "accepted")
                                                     }
-                                                    className="bg-green-500 hover:bg-green-600 text-black"
+                                                    className="bg-green-500 hover:bg-green-600 text-white"
                                                   >
                                                     Accept
                                                   </Button>
                                                   <Button
                                                     onClick={() =>
-                                                      handleStatus(student.id, domain.name, subDomain, "rejected")
+                                                      handleStatusUpdate(student.email, domain, subDomain, "rejected")
                                                     }
-                                                    className="bg-red-500 hover:bg-red-600 text-black"
+                                                    className="bg-red-500 hover:bg-red-600 text-white"
                                                   >
                                                     Reject
                                                   </Button>
-                                                </div>
+                                                </>
                                               )}
-                                              {status === "accepted" && (
+                                              {(status === "accepted" || status === "rejected") && (
                                                 <Button
                                                   onClick={() =>
-                                                    handleStatus(student.id, domain.name, subDomain, "pending")
-                                                  }
-                                                  className="bg-yellow-500 hover:bg-yellow-600 text-black"
-                                                >
-                                                  Move to Pending
-                                                </Button>
-                                              )}
-                                              {status === "rejected" && (
-                                                <Button
-                                                  onClick={() =>
-                                                    handleStatus(student.id, domain.name, subDomain, "pending")
+                                                    handleStatusUpdate(student.email, domain, subDomain, "pending")
                                                   }
                                                   className="bg-yellow-500 hover:bg-yellow-600 text-black"
                                                 >

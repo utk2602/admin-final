@@ -19,7 +19,7 @@ const allowedEmails = new Set([
   "adityakumar.verma2022@vitstudent.ac.in",
   "aryasadanand.patil2022@vitstudent.ac.in",
   "varun.satish2022@vitstudent.ac.in",
-  "utksrh@gmail.com"
+  "utkarshadmission23@gmail.com"
 ]);
 
 export default function Home() {

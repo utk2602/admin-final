@@ -10,11 +10,28 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
-import type { Question, Domain } from "../services/api"
+import type { Question } from "../services/api"
+export const mockDomains = [
+  {
+    id: 1,
+    name: "Management",
+    subDomains: ["events", "p&m"],
+  },
+  {
+    id: 2,
+    name: "Tech",
+    subDomains: ["web", "iot", "app", "ai", "Rnd"],
+  },
+  {
+    id: 3,
+    name: "Design",
+    subDomains: ["ui/ux", "video_editing", "graphic designing"],
+  },
+]
 
 export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([])
-  const [domains, setDomains] = useState<Domain[]>([])
+  const [domains, setDomains] = useState<(typeof Domain)[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
@@ -35,7 +52,7 @@ export default function QuestionsPage() {
       try {
         const [questionsData, domainsData] = await Promise.all([fetchQuestions(), fetchDomains()])
         setQuestions(questionsData as Question[])
-        setDomains(domainsData as Domain[])
+        setDomains(domainsData as typeof Domain[])
         setLoading(false)
       } catch (err) {
         setError("Failed to load data. Please try again later.")
@@ -170,7 +187,7 @@ export default function QuestionsPage() {
                 onValueChange={(value: "objective" | "subjective") =>
                   setNewQuestion({ ...newQuestion, type: value })
                 }
-                className="bg-gray-800 text-white"
+                
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Question Type" />
