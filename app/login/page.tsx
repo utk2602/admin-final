@@ -1,4 +1,5 @@
 "use client";
+import Cookies from "js-cookie";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -37,12 +38,19 @@ export default function Home() {
   const handleSignIn = async () => {
     setError(null);
     try {
-      await signInWithGoogle();
+      const userCredential = await signInWithGoogle();
+      if (userCredential && userCredential.user) {
+        const idToken = await userCredential.user.getIdToken();
+        Cookies.set("authToken", idToken, {
+          expires: 1, // Expires in 1 day
+          secure: true,
+          sameSite: "Strict",
+        });
+      }
     } catch (err) {
-      setError("An error occurred during sign-in.");
+      setError("");
     }
   };
-
   const handleSignOut = async () => {
     setError(null);
     await signOut();

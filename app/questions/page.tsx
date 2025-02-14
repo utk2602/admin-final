@@ -262,14 +262,14 @@ export default function QuestionsPage() {
                     onValueChange={(value) =>
                       setNewQuestion({ ...newQuestion, correctAnswer: Number.parseInt(value) })
                     }
-                    className="bg-gray-800 text-white"
+                    
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Correct Answer" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-green-700">
                       {newQuestion.options?.map((_, index) => (
-                        <SelectItem key={index} value={index.toString()}>
+                        <SelectItem key={index} value={index.toString()} className="bg-white">
                           Option {index + 1}
                         </SelectItem>
                       ))}

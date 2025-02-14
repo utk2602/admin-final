@@ -76,74 +76,6 @@ export const mockStudents = [
     },
   },
 ]
-
-export const mockDomains = [
-  {
-    id: 1,
-    name: "Management",
-    subDomains: ["events", "p&m"],
-  },
-  {
-    id: 2,
-    name: "Tech",
-    subDomains: ["web", "iot", "app", "ai", "Rnd"],
-  },
-  {
-    id: 3,
-    name: "Design",
-    subDomains: ["ui/ux", "video_editing", "graphic designing"],
-  },
-]
-
-export interface Question {
-  id: number
-  type: "objective" | "subjective"
-  domain: string
-  subDomain: string
-  content: string
-  options?: string[]
-  correctAnswer?: string | number
-}
-
-export const mockQuestions: Question[] = [
-  {
-    id: 1,
-    type: "objective",
-    domain: "Tech",
-    subDomain: "web",
-    content: "What does HTML stand for?",
-    options: [
-      "Hyper Text Markup Language",
-      "High Tech Machine Learning",
-      "Hyperlink and Text Markup Language",
-      "Home Tool Markup Language",
-    ],
-    correctAnswer: 0,
-  },
-  {
-    id: 2,
-    type: "subjective",
-    domain: "Management",
-    subDomain: "events",
-    content: "Describe the key steps in organizing a successful tech conference.",
-  },
-  {
-    id: 3,
-    type: "objective",
-    domain: "Design",
-    subDomain: "ui/ux",
-    content: "Which of the following is NOT a principle of user-centered design?",
-    options: [
-      "Empathy for users",
-      "Focusing on aesthetics over functionality",
-      "Iterative design process",
-      "Usability testing",
-    ],
-    correctAnswer: 1,
-  },
-]
-
-// Updated mock data structure
 export const mockData = {
   status_code: 200,
   content: {
@@ -438,11 +370,86 @@ export const mockData = {
   },
 }
 
+export const fetchStudentsByDomain = async (domain: string) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockData.content[domain as keyof typeof mockData.content])
+    }, 1000)
+  })
+}
+
+
+export const mockDomains = [
+  {
+    id: 1,
+    name: "Management",
+    subDomains: ["events", "p&m"],
+  },
+  {
+    id: 2,
+    name: "Tech",
+    subDomains: ["web", "iot", "app", "ai", "Rnd"],
+  },
+  {
+    id: 3,
+    name: "Design",
+    subDomains: ["ui/ux", "video_editing", "graphic designing"],
+  },
+]
+
+export interface Question {
+  id: number
+  type: "objective" | "subjective"
+  domain: string
+  subDomain: string
+  content: string
+  options?: string[]
+  correctAnswer?: string | number
+}
+
+export const mockQuestions: Question[] = [
+  {
+    id: 1,
+    type: "objective",
+    domain: "Tech",
+    subDomain: "web",
+    content: "What does HTML stand for?",
+    options: [
+      "Hyper Text Markup Language",
+      "High Tech Machine Learning",
+      "Hyperlink and Text Markup Language",
+      "Home Tool Markup Language",
+    ],
+    correctAnswer: 0,
+  },
+  {
+    id: 2,
+    type: "subjective",
+    domain: "Management",
+    subDomain: "events",
+    content: "Describe the key steps in organizing a successful tech conference.",
+  },
+  {
+    id: 3,
+    type: "objective",
+    domain: "Design",
+    subDomain: "ui/ux",
+    content: "Which of the following is NOT a principle of user-centered design?",
+    options: [
+      "Empathy for users",
+      "Focusing on aesthetics over functionality",
+      "Iterative design process",
+      "Usability testing",
+    ],
+    correctAnswer: 1,
+  },
+]
+
 export const fetchDomains = async () => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(Object.keys(mockData.content))
-    }, 1000)
+      resolve(mockDomains)
+    }, 1000) // Simulate network delay
   })
 }
 
@@ -454,17 +461,9 @@ export const fetchStudents = async () => {
   })
 }
 
-export const fetchStudentsByDomain = async (domain: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockData.content[domain as keyof typeof mockData.content])
-    }, 1000)
-  })
-}
-
 export const updateStudentStatus = async (
-  email: string,
-  domain: string,
+  studentId: number,
+  domainName: string,
   subDomain: string,
   status: "accepted" | "rejected" | "pending",
 ) => {
@@ -522,4 +521,3 @@ export const deleteQuestion = async (id: number) => {
     }, 500)
   })
 }
-

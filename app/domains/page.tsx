@@ -116,152 +116,132 @@ export default function DomainsPage() {
                 <CardTitle className="text-2xl text-[#f4b41a] pixel-font">{domain}</CardTitle>
               </CardHeader>
               <CardContent>
-                <Accordion type="single" collapsible className="w-full">
-                  {Object.entries(studentsData[domain]).map(([subDomain, subDomainData]) => (
-                    <AccordionItem key={subDomain} value={subDomain}>
-                      <AccordionTrigger className="text-xl text-[#e8b974] pixel-font">{subDomain}</AccordionTrigger>
-                      <AccordionContent>
-                        <Tabs defaultValue="pending" className="w-full">
-                          <TabsList className="bg-gray-800 border-gradient">
-                            <TabsTrigger
-                              value="pending"
-                              className="text-white data-[state=active]:bg-[#f4b41a] data-[state=active]:text-black"
-                            >
-                              Pending
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="accepted"
-                              className="text-white data-[state=active]:bg-[#f4b41a] data-[state=active]:text-black"
-                            >
-                              Accepted
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="rejected"
-                              className="text-white data-[state=active]:bg-[#f4b41a] data-[state=active]:text-black"
-                            >
-                              Rejected
-                            </TabsTrigger>
-                          </TabsList>
+              <Accordion type="single" collapsible className="w-full">
+  {studentsData[domain] &&
+    Object.entries(studentsData[domain]).map(([subDomain, subDomainData]) => (
+      <AccordionItem key={subDomain} value={subDomain}>
+        <AccordionTrigger className="text-xl text-[#e8b974] pixel-font">{subDomain}</AccordionTrigger>
+        <AccordionContent>
+          <Tabs defaultValue="pending" className="w-full">
+            <TabsList className="bg-gray-800 border-gradient">
+              <TabsTrigger value="pending" className="text-white data-[state=active]:bg-[#f4b41a] data-[state=active]:text-black">
+                Pending
+              </TabsTrigger>
+              <TabsTrigger value="accepted" className="text-white data-[state=active]:bg-[#f4b41a] data-[state=active]:text-black">
+                Accepted
+              </TabsTrigger>
+              <TabsTrigger value="rejected" className="text-white data-[state=active]:bg-[#f4b41a] data-[state=active]:text-black">
+                Rejected
+              </TabsTrigger>
+            </TabsList>
 
-                          {["pending", "accepted", "rejected"].map((status) => (
-                            <TabsContent key={status} value={status}>
-                              <div className="overflow-x-auto">
-                                <table className="w-full">
-                                  <thead>
-                                    <tr className="text-left">
-                                      <th className="p-2">Email</th>
-                                      <th className="p-2">Score</th>
-                                      <th className="p-2">Actions</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <AnimatePresence>
-                                      {subDomainData.items
-                                        .filter((student) => student.status === status)
-                                        .map((student) => (
-                                          <motion.tr
-                                            key={student.email}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -20 }}
-                                            className="border-b border-gray-700 bg-gray-800"
-                                          >
-                                            <td className="p-2">
-                                              <span className="font-semibold text-[#f4b41a]">{student.email}</span>
-                                            </td>
-                                            <td className="p-2">{student.score1}</td>
-                                            <td className="p-2 space-x-2">
-                                              <Dialog>
-                                                <DialogTrigger asChild>
-                                                  <Button
-                                                    onClick={() => setSelectedStudent(student)}
-                                                    className="bg-blue-500 hover:bg-blue-600 text-white"
-                                                  >
-                                                    View Details
-                                                  </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="bg-gray-900 text-white">
-                                                  <DialogHeader>
-                                                    <DialogTitle>Student Details</DialogTitle>
-                                                  </DialogHeader>
-                                                  <div className="mt-4">
-                                                    <h3 className="text-lg font-semibold mb-2">
-                                                      Email: {selectedStudent?.email}
-                                                    </h3>
-                                                    <h4 className="text-md font-semibold mb-2">
-                                                      Score: {selectedStudent?.score1}
-                                                    </h4>
-                                                    <h4 className="text-md font-semibold mb-2">Questions:</h4>
-                                                    {selectedStudent?.round1.map((question, index) => (
-                                                      <div key={index} className="mb-4">
-                                                        <p className="font-semibold">{question.question}</p>
-                                                        {question.options ? (
-                                                          <ul className="list-disc list-inside">
-                                                            {question.options.map((option, optionIndex) => (
-                                                              <li
-                                                                key={optionIndex}
-                                                                className={
-                                                                  optionIndex === question.selectedOption
-                                                                    ? "text-green-500"
-                                                                    : ""
-                                                                }
-                                                              >
-                                                                {option}
-                                                              </li>
-                                                            ))}
-                                                          </ul>
-                                                        ) : (
-                                                          <p className="italic">Answer: {question.answer}</p>
-                                                        )}
-                                                      </div>
-                                                    ))}
-                                                  </div>
-                                                </DialogContent>
-                                              </Dialog>
-                                              {status === "pending" && (
-                                                <>
-                                                  <Button
-                                                    onClick={() =>
-                                                      handleStatusUpdate(student.email, domain, subDomain, "accepted")
-                                                    }
-                                                    className="bg-green-500 hover:bg-green-600 text-white"
-                                                  >
-                                                    Accept
-                                                  </Button>
-                                                  <Button
-                                                    onClick={() =>
-                                                      handleStatusUpdate(student.email, domain, subDomain, "rejected")
-                                                    }
-                                                    className="bg-red-500 hover:bg-red-600 text-white"
-                                                  >
-                                                    Reject
-                                                  </Button>
-                                                </>
-                                              )}
-                                              {(status === "accepted" || status === "rejected") && (
-                                                <Button
-                                                  onClick={() =>
-                                                    handleStatusUpdate(student.email, domain, subDomain, "pending")
+            {["pending", "accepted", "rejected"].map((status) => (
+              <TabsContent key={status} value={status}>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left">
+                        <th className="p-2">Email</th>
+                        <th className="p-2">Score</th>
+                        <th className="p-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <AnimatePresence>
+                        {subDomainData.items
+                          ?.filter((student) => student.status === status)
+                          .map((student) => (
+                            <motion.tr
+                              key={student.email}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              className="border-b border-gray-700 bg-gray-800"
+                            >
+                              <td className="p-2">
+                                <span className="font-semibold text-[#f4b41a]">{student.email}</span>
+                              </td>
+                              <td className="p-2">{student.score1}</td>
+                              <td className="p-2 space-x-2">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      onClick={() => setSelectedStudent(student)}
+                                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                                    >
+                                      View Details
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="bg-gray-900 text-white">
+                                    <DialogHeader>
+                                      <DialogTitle>Student Details</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="mt-4">
+                                      <h3 className="text-lg font-semibold mb-2">Email: {selectedStudent?.email}</h3>
+                                      <h4 className="text-md font-semibold mb-2">Score: {selectedStudent?.score1}</h4>
+                                      <h4 className="text-md font-semibold mb-2">Questions:</h4>
+                                      {selectedStudent?.round1.map((question, index) => (
+                                        <div key={index} className="mb-4">
+                                          <p className="font-semibold">{question.question}</p>
+                                          {question.options ? (
+                                            <ul className="list-disc list-inside">
+                                              {question.options.map((option, optionIndex) => (
+                                                <li
+                                                  key={optionIndex}
+                                                  className={
+                                                    optionIndex === question.selectedOption ? "text-green-500" : ""
                                                   }
-                                                  className="bg-yellow-500 hover:bg-yellow-600 text-black"
                                                 >
-                                                  Move to Pending
-                                                </Button>
-                                              )}
-                                            </td>
-                                          </motion.tr>
-                                        ))}
-                                    </AnimatePresence>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </TabsContent>
+                                                  {option}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          ) : (
+                                            <p className="italic">Answer: {question.answer}</p>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                                {status === "pending" && (
+                                  <>
+                                    <Button
+                                      onClick={() => handleStatusUpdate(student.email, domain, subDomain, "accepted")}
+                                      className="bg-green-500 hover:bg-green-600 text-white"
+                                    >
+                                      Accept
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleStatusUpdate(student.email, domain, subDomain, "rejected")}
+                                      className="bg-red-500 hover:bg-red-600 text-white"
+                                    >
+                                      Reject
+                                    </Button>
+                                  </>
+                                )}
+                                {(status === "accepted" || status === "rejected") && (
+                                  <Button
+                                    onClick={() => handleStatusUpdate(student.email, domain, subDomain, "pending")}
+                                    className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                                  >
+                                    Move to Pending
+                                  </Button>
+                                )}
+                              </td>
+                            </motion.tr>
                           ))}
-                        </Tabs>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+                      </AnimatePresence>
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </AccordionContent>
+      </AccordionItem>
+    ))}
+</Accordion>
               </CardContent>
             </Card>
           ))}
