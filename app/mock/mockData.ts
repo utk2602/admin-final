@@ -77,23 +77,12 @@ export const mockStudents = [
   },
 ]
 
-export const mockDomains = [
-  {
-    id: 1,
-    name: "Management",
-    subDomains: ["events", "p&m"],
-  },
-  {
-    id: 2,
-    name: "Tech",
-    subDomains: ["web", "iot", "app"],
-  },
-  {
-    id: 3,
-    name: "Design",
-    subDomains: ["ui/ux", "video_editing"],
-  },
-]
+const mockDomains = [
+  [1, "Management", ["events", "p&m"]],
+  [2, "Tech", ["web", "iot", "app"]],
+  [3, "Design", ["ui/ux", "video_editing"]]
+];
+
 
 export interface Question {
   id: number

@@ -89,13 +89,16 @@ export async function addQuestion(
   round: number,
   domain: string,
   question: string,
-  imageFile: File
+  imageFile?: File // Image file is now optional
 ): Promise<SubmitResponse> {
   const formData = new FormData();
   formData.append("round", round.toString());
   formData.append("domain", domain);
-  formData.append("question", JSON.stringify(question));
-  formData.append("image", imageFile);
+  formData.append("question", question);
+
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
 
   const response = await ProtectedRequest<SubmitResponse>(
     "POST",
@@ -105,3 +108,52 @@ export async function addQuestion(
 
   return response.data;
 }
+
+// Function to handle adding a question
+export const handleAddQuestion = async (
+  newQuestion: {
+    question: string;
+    options?: string;
+    correct_answer?: string;
+    round: string;
+  },
+  selectedSubDomain: string,
+  imageFile: File | null,
+  setQuestions: React.Dispatch<React.SetStateAction<any[]>>,
+  setNewQuestion: React.Dispatch<
+    React.SetStateAction<{
+      question: string;
+      options?: string;
+      correct_answer?: string;
+      round: string;
+    }>
+  >,
+  setImageFile: React.Dispatch<React.SetStateAction<File | null>>,
+  toast: (options: { title: string; description: string; variant?: string }) => void
+) => {
+  try {
+    if (!newQuestion.question.trim()) {
+      toast({ title: "Error", description: "Question cannot be empty.", variant: "destructive" });
+      return;
+    }
+
+    const response = await addQuestion(
+      Number(newQuestion.round), // Ensure round is a number
+      selectedSubDomain,
+      newQuestion.question,
+      imageFile ?? undefined
+    );
+
+    if (response.status_code === 200) {
+      setQuestions((prevQuestions) => [...prevQuestions, newQuestion]);
+      setNewQuestion({ question: "", options: "", correct_answer: "", round: "1" });
+      setImageFile(null);
+      toast({ title: "Success", description: "Question added successfully." });
+    } else {
+      throw new Error(response.message);
+    }
+  } catch (err) {
+    console.error("Error adding question:", err);
+    toast({ title: "Error", description: "Failed to add the question.", variant: "destructive" });
+  }
+};
