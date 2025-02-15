@@ -20,7 +20,8 @@ const allowedEmails = new Set([
   "adityakumar.verma2022@vitstudent.ac.in",
   "aryasadanand.patil2022@vitstudent.ac.in",
   "varun.satish2022@vitstudent.ac.in",
-  "utkarshadmission23@gmail.com"
+  "utkarsh.2023@vitstudent.ac.in",
+  
 ]);
 
 export default function Home() {
@@ -42,9 +43,7 @@ export default function Home() {
       if (userCredential && userCredential.user) {
         const idToken = await userCredential.user.getIdToken();
         Cookies.set("authToken", idToken, {
-          expires: 1, // Expires in 1 day
-          secure: true,
-          sameSite: "Strict",
+          expires_in:1 ,
         });
       }
     } catch (err) {

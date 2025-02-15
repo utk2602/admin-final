@@ -84,24 +84,40 @@ export async function fetchQuestions(
   );
   return response.data;
 }
-
 export async function addQuestion(
-  round: number,
+  round: string,
   domain: string,
   question: string,
-  imageFile: File
+  options: string[] = [],
+  correctIndex: number = 0,
+  imageFile: File | null = null
 ): Promise<SubmitResponse> {
   const formData = new FormData();
-  formData.append("round", round.toString());
+  formData.append("round", round);
   formData.append("domain", domain);
-  formData.append("question", JSON.stringify(question));
-  formData.append("image", imageFile);
+  formData.append("question", question);
+  
+  // Append options only if there are exactly 4 and they are not empty
+  const filteredOptions = options.filter(opt => opt.trim() !== "");
+  if (filteredOptions.length === 4) {
+    formData.append("options", JSON.stringify(filteredOptions));
+  }
 
-  const response = await ProtectedRequest<SubmitResponse>(
-    "POST",
-    "/admin/questions",
-    formData
-  );
+  // Validate and append correctIndex if valid
+  if (filteredOptions.length === 4 && correctIndex >= 0 && correctIndex < filteredOptions.length) {
+    formData.append("correctIndex", correctIndex.toString());
+  }
 
-  return response.data;
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  try {
+    const response = await ProtectedRequest<SubmitResponse>("POST", "/admin/questions", formData);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "An error occurred while adding the question.");
+  }
 }
+
+
