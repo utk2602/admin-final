@@ -73,6 +73,7 @@ const ProtectedRequest = async <T = unknown>(
   }
 };
 
+
 export async function fetchQuestions(
   subdomain: string
 ): Promise<LoadQuestionsResponse> {
@@ -90,26 +91,24 @@ export async function addQuestion(
   question: string,
   options: string[] = [],
   correctIndex: number = 0,
-  imageFile: File | null = null
+  Image: File | null
 ): Promise<SubmitResponse> {
   const formData = new FormData();
   formData.append("round", round);
   formData.append("domain", domain);
   formData.append("question", question);
-  
-  // Append options only if there are exactly 4 and they are not empty
-  const filteredOptions = options.filter(opt => opt.trim() !== "");
-  if (filteredOptions.length === 4) {
-    formData.append("options", JSON.stringify(filteredOptions));
-  }
 
-  // Validate and append correctIndex if valid
-  if (filteredOptions.length === 4 && correctIndex >= 0 && correctIndex < filteredOptions.length) {
+  // Check if all 4 options are filled (no empty strings)
+  const allOptionsFilled = options.every(opt => opt.trim() !== "");
+
+  if (options.length === 4 && allOptionsFilled) {
+    formData.append("options", JSON.stringify(options));
     formData.append("correctIndex", correctIndex.toString());
   }
 
-  if (imageFile) {
-    formData.append("image", imageFile);
+  // Append image only if it exists
+  if (Image) {
+    formData.append("image", Image);
   }
 
   try {
@@ -119,5 +118,6 @@ export async function addQuestion(
     throw new Error(error.response?.data?.message || "An error occurred while adding the question.");
   }
 }
+
 
 

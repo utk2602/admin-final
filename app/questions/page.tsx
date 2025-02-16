@@ -33,44 +33,50 @@ const DOMAIN_MAPPING = [
 export default function QuestionsPage() {
   const [newQuestion, setNewQuestion] = useState({
     question: "",
-    options: ["", "", "", ""], // Initialize with 4 empty strings
-    correct_answer: "",
+    options: ["", "", "", ""],
+    correctIndex: 0,
     round: "1",
+    Image: null as File | null, // Explicitly define type
   });
+
   const [selectedSubDomain, setSelectedSubDomain] = useState<string>("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const handleAddQuestion = async () => {
     const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "");
-  
-    // ❌ Validate: Only 0 or 4 options are allowed
+
+    // ❌ Validate: Only allow 0 or 4 options
     if (filteredOptions.length !== 0 && filteredOptions.length !== 4) {
       toast({
         title: "Error",
         description: "You must enter exactly 4 options or leave them all empty.",
         variant: "destructive",
       });
-      return; // Stop execution
+      return;
     }
-  
+
     try {
       const response = await addQuestion(
         newQuestion.round,
         selectedSubDomain,
         newQuestion.question,
-        filteredOptions.length === 4 ? filteredOptions : "", // Send "" if no options, otherwise array
-        newQuestion.correct_answer,
-        imageFile || null
+        filteredOptions.length === 4 ? filteredOptions : "",
+        newQuestion.correctIndex,
+        newQuestion.Image
       );
-  
+
       if (response.status_code === 200) {
         setNewQuestion({
           question: "",
           options: ["", "", "", ""], // Reset options
-          correct_answer: "",
+          correctIndex: 0,
           round: "1",
+          Image: null, // ✅ Reset image after successful submission
         });
-        setImageFile(null);
+
+        // ✅ Reset file input field
+        const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+        if (fileInput) fileInput.value = "";
+
         toast({
           title: "Success",
           description: "Question added successfully.",
@@ -84,14 +90,13 @@ export default function QuestionsPage() {
         description: `Failed to add the question. ${err}`,
         variant: "destructive",
       });
-      console.log(newQuestion);
     }
+    console.log(newQuestion)
   };
-  
-  
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) setImageFile(file);
+    const file = event.target.files?.[0] || null; // Set to null if no file
+    setNewQuestion((prev) => ({ ...prev, Image: file }));
   };
 
   return (
@@ -110,10 +115,7 @@ export default function QuestionsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Select
-                value={selectedSubDomain}
-                onValueChange={setSelectedSubDomain}
-              >
+              <Select value={selectedSubDomain} onValueChange={setSelectedSubDomain}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Subdomain" />
                 </SelectTrigger>
@@ -154,18 +156,20 @@ export default function QuestionsPage() {
               </div>
 
               <Input
-                type="text"
+                type="number"
                 placeholder="Correct Answer (Index)"
-                value={newQuestion.correct_answer}
+                value={newQuestion.correctIndex}
                 onChange={(e) =>
                   setNewQuestion({
                     ...newQuestion,
-                    correct_answer: e.target.value,
+                    correctIndex: Number(e.target.value),
                   })
                 }
                 className="bg-gray-800 text-white"
               />
+
               <Input
+                id="file-upload" // ✅ Add ID to reset it later
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
