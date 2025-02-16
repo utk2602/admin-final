@@ -14,7 +14,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 
-const provider = new GoogleAuthProvider()
+const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({
+    hd: "vitstudent.ac.in",
+    prompt: "select_account",
+  });
 
 export const signInWithGoogle = () => signInWithPopup(auth, provider)
 export const signOut = () => firebaseSignOut(auth)

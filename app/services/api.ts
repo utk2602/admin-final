@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import Cookies from "js-cookie";
 
-const BACKEND_URL = "https://enrollments-2025-backend.onrender.com";
+const BACKEND_URL = "http://127.0.0.1:8000";
 
 export interface Question {
   question: string;
@@ -54,7 +54,7 @@ const ProtectedRequest = async <T = unknown>(
     if (data instanceof FormData) {
       headers["Content-Type"] = "multipart/form-data";
     }
-
+    console.log(token, "token");
     const config = {
       method,
       url: `${BACKEND_URL}${endpoint}`,
@@ -73,6 +73,24 @@ const ProtectedRequest = async <T = unknown>(
   }
 };
 
+interface DomainData {
+  items: string;
+  lastKey: string;
+}
+
+export async function fetchDomainData(
+  domain: string, round:number, status:string, last_evaluated_key:string
+): Promise<DomainData> {
+  console.log(last_evaluated_key, 'in api');
+  const response = await ProtectedRequest<DomainData>(
+    "GET",
+    "/admin/fetch",
+    null,
+    {domain, round, status, last_evaluated_key}
+  );
+  console.log(response);
+  return response.data;
+}
 
 export async function fetchQuestions(
   subdomain: string
@@ -89,30 +107,32 @@ export async function addQuestion(
   round: string,
   domain: string,
   question: string,
-  options: string[] = [],
-  correctIndex: number = 0,
+  options: string[],
+  correctIndex: number | null,
   Image: File | null
 ): Promise<SubmitResponse> {
+  console.log(round, domain, question, correctIndex );
   const formData = new FormData();
   formData.append("round", round);
   formData.append("domain", domain);
   formData.append("question", question);
 
-  // Check if all 4 options are filled (no empty strings)
-  const allOptionsFilled = options.every(opt => opt.trim() !== "");
-
-  if (options.length === 4 && allOptionsFilled) {
+  if (options.length === 4 && correctIndex) {
     formData.append("options", JSON.stringify(options));
     formData.append("correctIndex", correctIndex.toString());
   }
 
-  // Append image only if it exists
   if (Image) {
     formData.append("image", Image);
   }
+  for (let pair of formData.entries()) {
+    console.log('in for', pair[0] + ": " + pair[1]);
+  }
+  
 
   try {
     const response = await ProtectedRequest<SubmitResponse>("POST", "/admin/questions", formData);
+    console.log(response, 'response');
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || "An error occurred while adding the question.");
