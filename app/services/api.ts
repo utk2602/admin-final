@@ -79,14 +79,14 @@ interface DomainData {
 }
 
 export async function fetchDomainData(
-  domain: string, status:string, last_evaluated_key:string, round:number
+  domain: string, round:number, status:string, last_evaluated_key:string
 ): Promise<DomainData> {
+  console.log(last_evaluated_key, 'in api');
   const response = await ProtectedRequest<DomainData>(
     "GET",
     "/admin/fetch",
-    {domain, round, status, last_evaluated_key
-    },
-    null
+    null,
+    {domain, round, status, last_evaluated_key}
   );
   console.log(response);
   return response.data;
