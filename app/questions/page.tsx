@@ -43,7 +43,6 @@ export default function QuestionsPage() {
 
   const handleAddQuestion = async () => {
     const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "");
-
     // ❌ Validate: Only allow 0 or 4 options
     if (filteredOptions.length !== 0 && filteredOptions.length !== 4) {
       toast({
@@ -55,15 +54,16 @@ export default function QuestionsPage() {
     }
 
     try {
+      console.log('in try');
       const response = await addQuestion(
         newQuestion.round,
         selectedSubDomain,
         newQuestion.question,
-        filteredOptions.length === 4 ? filteredOptions : "",
+        filteredOptions.length === 4 ? filteredOptions : [],
         newQuestion.correctIndex,
         newQuestion.Image
       );
-
+      console.log('djfndf', response);
       if (response.status_code === 200) {
         setNewQuestion({
           question: "",

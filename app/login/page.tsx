@@ -43,7 +43,7 @@ export default function Home() {
       if (userCredential && userCredential.user) {
         const idToken = await userCredential.user.getIdToken();
         Cookies.set("authToken", idToken, {
-          expires_in:1 ,
+          expires:1/24 ,
         });
       }
     } catch (err) {
