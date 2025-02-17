@@ -80,6 +80,13 @@ interface DomainData {
   lastKey: string;
 }
 
+interface StatusData {
+  status:number
+  data:{
+    detail:string
+  }
+}
+
 export async function fetchDomainData(
   domain: string, round:number, status:string, last_evaluated_key:string
 ): Promise<DomainData> {
@@ -92,6 +99,20 @@ export async function fetchDomainData(
   );
   console.log(response);
   return response.data;
+}
+
+export async function submitStatus(
+  user_email: string,domain:string, status:string): Promise<StatusData> {
+    //console.log(email, status, 'in api');
+    const round=1;
+  const response = await ProtectedRequest<StatusData>(
+    "POST",
+    "/admin/qualify",
+    {user_email,domain, status,round},
+    null
+  );
+  console.log(response);
+  return response;
 }
 
 export async function fetchQuestions(
