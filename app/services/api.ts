@@ -1,7 +1,8 @@
 import axios, { AxiosResponse } from "axios";
 import Cookies from "js-cookie";
 
-const BACKEND_URL = "http://127.0.0.1:8000";
+const BACKEND_URL = "https://enrollments-2025-backend.onrender.com";
+
 
 export interface Question {
   question: string;
@@ -14,7 +15,7 @@ interface QuestionData {
   score1?: number;
 }
 
-interface LoadQuestionsResponse {
+export interface LoadQuestionsResponse {
   questions: Question[] | PromiseLike<Question[]>;
   status_code: number;
   content: {
@@ -25,7 +26,7 @@ interface LoadQuestionsResponse {
   };
 }
 
-interface SubmitResponse {
+export interface SubmitResponse {
   status_code: number;
   message: string;
 }
@@ -74,6 +75,7 @@ const ProtectedRequest = async <T = unknown>(
 };
 
 interface DomainData {
+  content: DomainData;
   items: string;
   lastKey: string;
 }
@@ -138,6 +140,5 @@ export async function addQuestion(
     throw new Error(error.response?.data?.message || "An error occurred while adding the question.");
   }
 }
-
 
 
