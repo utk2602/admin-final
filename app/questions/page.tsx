@@ -1,21 +1,16 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import type React from "react";
-import Header from "../components/header";
-import { addQuestion } from "../services/api";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "@/components/ui/use-toast";
+import { useState, useEffect } from "react"
+import type React from "react"
+import Header from "../components/header"
+import { addQuestion, fetchQuestions, type Question } from "../services/api"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "@/components/ui/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const DOMAIN_MAPPING = [
   "UI/UX",
@@ -28,7 +23,7 @@ const DOMAIN_MAPPING = [
   "APP",
   "AI/ML",
   "RND",
-];
+]
 
 export default function QuestionsPage() {
   const [newQuestion, setNewQuestion] = useState({
@@ -36,82 +31,107 @@ export default function QuestionsPage() {
     options: ["", "", "", ""],
     correctIndex: 0,
     round: "1",
-    Image: null as File | null, // Explicitly define type
-  });
+    Image: null as File | null,
+  })
 
-  const [selectedSubDomain, setSelectedSubDomain] = useState<string>("");
+  const [selectedSubDomain, setSelectedSubDomain] = useState<string>("")
+  const [showPopup, setShowPopup] = useState(false)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setShowPopup(false)
+  }, [])
+
+  useEffect(() => {
+    if (selectedSubDomain) {
+      setLoading(true)
+      fetchQuestions(selectedSubDomain)
+        .then((response) => {
+          setQuestions(response.questions as Question[])
+          setLoading(false)
+        })
+        .catch((error) => {
+          console.error("Error fetching questions:", error)
+          toast({
+            title: "Error",
+            description: "Failed to fetch questions. Please try again.",
+            variant: "destructive",
+          })
+          setLoading(false)
+        })
+    }
+  }, [selectedSubDomain])
 
   const handleAddQuestion = async () => {
-    const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "");
-    // ❌ Validate: Only allow 0 or 4 options
+    const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "")
     if (filteredOptions.length !== 0 && filteredOptions.length !== 4) {
       toast({
         title: "Error",
         description: "You must enter exactly 4 options or leave them all empty.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     try {
-      console.log('in try');
+      console.log("in try")
       const response = await addQuestion(
         newQuestion.round,
         selectedSubDomain,
         newQuestion.question,
         filteredOptions.length === 4 ? filteredOptions : [],
         newQuestion.correctIndex,
-        newQuestion.Image
-      );
-      console.log('djfndf', response);
+        newQuestion.Image,
+      )
+      console.log("djfndf", response)
       if (response.status_code === 200) {
         setNewQuestion({
           question: "",
-          options: ["", "", "", ""], // Reset options
+          options: ["", "", "", ""],
           correctIndex: 0,
           round: "1",
-          Image: null, // ✅ Reset image after successful submission
-        });
+          Image: null,
+        })
+        setShowPopup(true)
+        const fileInput = document.getElementById("file-upload") as HTMLInputElement
+        if (fileInput) fileInput.value = ""
 
-        // ✅ Reset file input field
-        const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-        if (fileInput) fileInput.value = "";
-
-        toast({
-          title: "Success",
-          description: "Question added successfully.",
-        });
+        // Refresh the questions list after adding a new question
+        fetchQuestions(selectedSubDomain)
+          .then((response) => {
+            setQuestions(response.questions as Question[])
+          })
+          .catch((error) => {
+            console.error("Error fetching updated questions:", error)
+          })
       } else {
-        throw new Error(response.message);
+        throw new Error(response.message)
       }
     } catch (err) {
       toast({
         title: "Error",
         description: `Failed to add the question. ${err}`,
         variant: "destructive",
-      });
+      })
     }
-    console.log(newQuestion)
-  };
+    setShowPopup(true)
+  }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null; // Set to null if no file
-    setNewQuestion((prev) => ({ ...prev, Image: file }));
-  };
+    const file = event.target.files?.[0] || null
+    setNewQuestion((prev) => ({ ...prev, Image: file }))
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
       <main className="container mx-auto mt-8 p-4">
-        <h1 className="text-3xl font-bold mb-6 text-[#f4b41a] pixel-font">
-          Question Management
-        </h1>
+        <h1 className="text-3xl font-bold mb-6 text-[#f4b41a] pixel-font">Question Management</h1>
 
         <Card className="bg-gray-900 border-gradient mb-8">
           <CardHeader>
-            <CardTitle className="text-2xl text-[#f4b41a] pixel-font">
-              Add New Question
-            </CardTitle>
+            <CardTitle className="text-2xl text-[#f4b41a] pixel-font">Add New Question</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -131,13 +151,10 @@ export default function QuestionsPage() {
               <Textarea
                 placeholder="Question"
                 value={newQuestion.question}
-                onChange={(e) =>
-                  setNewQuestion({ ...newQuestion, question: e.target.value })
-                }
+                onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
                 className="bg-gray-800 text-white"
               />
 
-              {/* Options Inputs */}
               <div className="space-y-2">
                 {newQuestion.options.map((option, index) => (
                   <Input
@@ -146,9 +163,9 @@ export default function QuestionsPage() {
                     placeholder={`Option ${index + 1}`}
                     value={option}
                     onChange={(e) => {
-                      const updatedOptions = [...newQuestion.options];
-                      updatedOptions[index] = e.target.value;
-                      setNewQuestion({ ...newQuestion, options: updatedOptions });
+                      const updatedOptions = [...newQuestion.options]
+                      updatedOptions[index] = e.target.value
+                      setNewQuestion({ ...newQuestion, options: updatedOptions })
                     }}
                     className="bg-gray-800 text-white"
                   />
@@ -169,7 +186,7 @@ export default function QuestionsPage() {
               />
 
               <Input
-                id="file-upload" // ✅ Add ID to reset it later
+                id="file-upload"
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
@@ -177,17 +194,52 @@ export default function QuestionsPage() {
               />
 
               <div className="flex justify-end space-x-2">
-                <Button
-                  onClick={handleAddQuestion}
-                  className="bg-[#f4b41a] text-black hover:bg-[#e8b974]"
-                >
+                <Button onClick={handleAddQuestion} className="bg-[#f4b41a] text-black hover:bg-[#e8b974]">
                   Add Question
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {loading ? (
+          <p className="text-center">Loading questions...</p>
+        ) : (
+          <Card className="bg-gray-900 border-gradient mt-8">
+            <CardHeader>
+              <CardTitle className="text-2xl text-[#f4b41a] pixel-font">
+                Existing Questions for {selectedSubDomain}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {questions.length > 0 ? (
+                <ul className="space-y-4">
+                  {questions.map((question, index) => (
+                    <li key={index} className="border-b border-gray-700 pb-4">
+                      <h3 className="font-bold mb-2">{question.question}</h3>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No questions found for this subdomain.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </main>
+
+      <Dialog open={showPopup} onOpenChange={setShowPopup}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-green-600">✅ Question Added!</DialogTitle>
+          </DialogHeader>
+          <p>Your question has been successfully added.</p>
+          <Button className="mt-4" onClick={() => setShowPopup(false)}>
+            Close
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }
+

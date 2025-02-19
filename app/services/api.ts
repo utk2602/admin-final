@@ -132,7 +132,7 @@ export async function addQuestion(
   question: string,
   options: string[],
   correctIndex: number | null,
-  Image: File | null
+  image: File | null
 ): Promise<SubmitResponse> {
   console.log(round, domain, question, correctIndex );
   const formData = new FormData();
@@ -145,8 +145,8 @@ export async function addQuestion(
     formData.append("correctIndex", correctIndex.toString());
   }
 
-  if (Image) {
-    formData.append("image", Image);
+  if (image) {
+    formData.append("image", image);
   }
   for (let pair of formData.entries()) {
     console.log('in for', pair[0] + ": " + pair[1]);

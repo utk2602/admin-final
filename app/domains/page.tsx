@@ -147,9 +147,9 @@ export default function DomainsPage() {
                   <thead>
                     <tr className="text-left border-b border-gray-700">
                       <th className="p-2">Email</th>
-                      <th className="p-2">Name</th>
-                      <th className="p-2">Status</th>
-                      <th className="p-2">Actions</th>
+                      
+                      
+                      
                     </tr>
                   </thead>
                   <tbody>
@@ -183,8 +183,7 @@ export default function DomainsPage() {
                                 </DialogHeader>
                                 <div className="mt-4">
                                   <h3 className="text-lg font-semibold mb-2">Email: {selectedStudent?.email}</h3>
-                                  <h4 className="text-md font-semibold mb-2">Name: {selectedStudent?.name}</h4>
-                                  <h4 className="text-md font-semibold mb-2">Status: {selectedStudent?.status}</h4>
+                                  
                                   <h4 className="text-md font-semibold mb-2">Questions:</h4>
                                   {selectedStudent?.round1.map((question, index) => (
                                     <div key={index} className="mb-4">
