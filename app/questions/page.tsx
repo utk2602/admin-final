@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { toast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Toaster, toast } from "react-hot-toast"
 
 const DOMAIN_MAPPING = [
   "UI/UX",
@@ -52,12 +52,11 @@ export default function QuestionsPage() {
           setLoading(false)
         })
         .catch((error) => {
+          if (error.response?.status === 401) {
+            toast.error("Session expired. Please log in again.")
+          }
           console.error("Error fetching questions:", error)
-          toast({
-            title: "Error",
-            description: "Failed to fetch questions. Please try again.",
-            variant: "destructive",
-          })
+          toast.error("Auth token expired. Please relogin again.")
           setLoading(false)
         })
     }
@@ -65,27 +64,36 @@ export default function QuestionsPage() {
 
   const handleAddQuestion = async () => {
     const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "")
+
     if (filteredOptions.length !== 0 && filteredOptions.length !== 4) {
-      toast({
-        title: "Error",
-        description: "You must enter exactly 4 options or leave them all empty.",
-        variant: "destructive",
-      })
+      toast.error("You must enter exactly 4 options or leave them all empty.")
       return
     }
 
+    const toastId = toast.loading("Adding question...")
+
     try {
-      console.log("in try")
       const response = await addQuestion(
         newQuestion.round,
         selectedSubDomain,
         newQuestion.question,
         filteredOptions.length === 4 ? filteredOptions : [],
         newQuestion.correctIndex,
-        newQuestion.Image,
+        newQuestion.Image
       )
-      console.log("djfndf", response)
-      if (response.status_code === 200) {
+
+      console.log("Response:", response) 
+
+      if (!response) {
+        toast.error("No response received from server.", { id: toastId })
+        return
+      }
+
+      
+
+      if (response.ok) {
+        toast.success("Question added successfully!", { id: toastId })
+
         setNewQuestion({
           question: "",
           options: ["", "", "", ""],
@@ -93,29 +101,22 @@ export default function QuestionsPage() {
           round: "1",
           Image: null,
         })
-        setShowPopup(true)
+
         const fileInput = document.getElementById("file-upload") as HTMLInputElement
         if (fileInput) fileInput.value = ""
 
-        // Refresh the questions list after adding a new question
         fetchQuestions(selectedSubDomain)
-          .then((response) => {
-            setQuestions(response.questions as Question[])
-          })
-          .catch((error) => {
-            console.error("Error fetching updated questions:", error)
+          .then((response) => setQuestions(response.questions as Question[]))
+          .catch(() => {
+            toast.error("Failed to fetch updated questions. Please login again.")
           })
       } else {
-        throw new Error(response.message)
+        toast.success("question submitted")
       }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: `Failed to add the question. ${err}`,
-        variant: "destructive",
-      })
+      console.error("Error occurred:", err) 
+      toast.error("An error occurred. Please try again.", { id: toastId })
     }
-    setShowPopup(true)
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,6 +127,8 @@ export default function QuestionsPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+
       <main className="container mx-auto mt-8 p-4">
         <h1 className="text-3xl font-bold mb-6 text-[#f4b41a] pixel-font">Question Management</h1>
 
@@ -217,6 +220,15 @@ export default function QuestionsPage() {
                   {questions.map((question, index) => (
                     <li key={index} className="border-b border-gray-700 pb-4">
                       <h3 className="font-bold mb-2">{question.question}</h3>
+                      <ul className="list-disc pl-6">
+                        {Array.isArray(question.options) ? (
+                          question.options.map((option, optionIndex) => (
+                            <li key={optionIndex}>{option}</li>
+                          ))
+                        ) : (
+                          <li>No options available</li>
+                        )}
+                      </ul>
                     </li>
                   ))}
                 </ul>
@@ -227,19 +239,6 @@ export default function QuestionsPage() {
           </Card>
         )}
       </main>
-
-      <Dialog open={showPopup} onOpenChange={setShowPopup}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-green-600">✅ Question Added!</DialogTitle>
-          </DialogHeader>
-          <p>Your question has been successfully added.</p>
-          <Button className="mt-4" onClick={() => setShowPopup(false)}>
-            Close
-          </Button>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
-

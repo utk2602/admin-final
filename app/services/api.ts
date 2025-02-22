@@ -3,8 +3,8 @@ import Cookies from "js-cookie";
 
 const BACKEND_URL = "https://enrollments-2025-backend.onrender.com";
 
-
 export interface Question {
+  options: any;
   question: string;
   answer: string;
 }
@@ -13,21 +13,25 @@ interface QuestionData {
   email: string;
   round1?: Question[];
   score1?: number;
+  options?: string[];
 }
 
 export interface LoadQuestionsResponse {
   questions: Question[] | PromiseLike<Question[]>;
+  options: string[];
   status_code: number;
   content: {
     [key: string]: {
       items: QuestionData[];
+      options: string[];
       last_evaluated_key: string;
     };
   };
 }
 
 export interface SubmitResponse {
-  status_code: number;
+  ok: any;
+  status: number;
   message: string;
 }
 
@@ -47,15 +51,9 @@ const ProtectedRequest = async <T = unknown>(
 ): Promise<AxiosResponse<T>> => {
   try {
     const token = getAuthToken();
-
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
     };
-
-    if (data instanceof FormData) {
-      headers["Content-Type"] = "multipart/form-data";
-    }
-    console.log(token, "token");
     const config = {
       method,
       url: `${BACKEND_URL}${endpoint}`,
@@ -63,13 +61,8 @@ const ProtectedRequest = async <T = unknown>(
       data,
       params,
     };
-
-    const response = await axios<T>(config);
-    return response;
+    return await axios<T>(config);
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`Error with protected request to ${endpoint}:`, error.message);
-    }
     throw error;
   }
 };
@@ -81,85 +74,89 @@ interface DomainData {
 }
 
 interface StatusData {
-  status:number
-  data:{
-    detail:string
-  }
+  status: number;
+  data: {
+    detail: string;
+  };
 }
 
 export async function fetchDomainData(
-  domain: string, round:number, status:string, last_evaluated_key:string
+  domain: string,
+  round: number,
+  status: string,
+  last_evaluated_key: string,
+  option: string[]
 ): Promise<DomainData> {
-  console.log(last_evaluated_key, 'in api');
   const response = await ProtectedRequest<DomainData>(
     "GET",
     "/admin/fetch",
     null,
-    {domain, round, status, last_evaluated_key}
+    { domain, round, status, last_evaluated_key, option }
   );
-  console.log(response);
   return response.data;
 }
 
 export async function submitStatus(
-  user_email: string,domain:string, status:string): Promise<StatusData> {
-    //console.log(email, status, 'in api');
-    const round=1;
-  const response = await ProtectedRequest<StatusData>(
+  user_email: string,
+  domain: string,
+  status: string
+): Promise<StatusData> {
+  const round = 1;
+  return await ProtectedRequest<StatusData>(
     "POST",
     "/admin/qualify",
-    {user_email,domain, status,round},
+    { user_email, domain, status, round },
     null
   );
-  console.log(response);
-  return response;
 }
 
-export async function fetchQuestions(
-  subdomain: string
-): Promise<LoadQuestionsResponse> {
+export async function fetchQuestions(subdomain: string): Promise<LoadQuestionsResponse> {
   const response = await ProtectedRequest<LoadQuestionsResponse>(
     "GET",
     "/domain/questions",
     null,
     { domain: subdomain, round: 1 }
   );
-  return response.data;
+  return {
+    ...response.data,
+    questions: response.data.questions.map((q) => ({
+      question: q.question,
+      options: q.options || [],
+      correctIndex: q.correctIndex ?? -1,
+    })),
+  };
 }
+
 export async function addQuestion(
   round: string,
   domain: string,
   question: string,
   options: string[],
   correctIndex: number | null,
-  image: File | null
+  imageFile: File | null
 ): Promise<SubmitResponse> {
-  console.log(round, domain, question, correctIndex );
   const formData = new FormData();
   formData.append("round", round);
   formData.append("domain", domain);
   formData.append("question", question);
 
-  if (options.length === 4 && correctIndex) {
+  if (options.length === 4 && correctIndex !== null) {
     formData.append("options", JSON.stringify(options));
-    formData.append("correctIndex", correctIndex.toString());
+    formData.append("correctIndex", (correctIndex - 1).toString());
   }
 
-  if (image) {
-    formData.append("image", image);
+  if (imageFile) {
+    formData.append("image", imageFile);
   }
-  for (let pair of formData.entries()) {
-    console.log('in for', pair[0] + ": " + pair[1]);
-  }
-  
 
   try {
-    const response = await ProtectedRequest<SubmitResponse>("POST", "/admin/questions", formData);
-    console.log(response, 'response');
+    const response = await ProtectedRequest<SubmitResponse>(
+      "POST",
+      "/admin/questions",
+      formData
+    );
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || "An error occurred while adding the question.");
   }
 }
-
-

@@ -61,8 +61,8 @@ export default function DomainsPage() {
         setError("No data found.")
       }
     } catch (err) {
-      setError("Failed to fetch data. Please try again.")
-      console.error("Fetch error:", err)
+      setError("Failed to fetch data. Please Relogin.")
+      
     } finally {
       setLoading(false)
     }
@@ -88,7 +88,7 @@ export default function DomainsPage() {
       setStudentsData((prevData) => prevData.filter((student) => student.email !== email))
       setSelectedStudent(null)
     } catch (err) {
-      console.error("Error updating status:", err)
+      
       toast({
         title: "Error",
         description: "Failed to update status. Please try again.",
