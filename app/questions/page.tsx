@@ -56,7 +56,7 @@ export default function QuestionsPage() {
             toast.error("Session expired. Please log in again.")
           }
           console.error("Error fetching questions:", error)
-          toast.error("Auth token expired. Please relogin again.")
+          toast.error("Auth token  might have expired. Please relogin again.")
           setLoading(false)
         })
     }
