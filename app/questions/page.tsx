@@ -266,13 +266,7 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
                   </ul>
                   {lastKey && (
                     <div className="flex justify-center mt-6">
-                      <Button
-                        onClick={handleLoadMore}
-                        disabled={loading}
-                        className="bg-[#f4b41a] text-black hover:bg-[#e8b974]"
-                      >
-                        {loading ? "Loading..." : "Load More Questions"}
-                      </Button>
+                      
                     </div>
                   )}
                 </>
