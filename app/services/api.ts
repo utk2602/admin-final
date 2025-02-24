@@ -56,7 +56,7 @@ const ProtectedRequest = async <T = unknown>(
       Authorization: `Bearer ${token}`,
     };
 
-    // Don't set Content-Type for FormData
+   
     if (!(data instanceof FormData)) {
       headers["Content-Type"] = "application/json";
     }
@@ -123,12 +123,10 @@ export async function fetchQuestions(
 ): Promise<LoadQuestionsResponse> {
   const response = await ProtectedRequest<LoadQuestionsResponse>(
     "GET",
-    "/domain/questions",
+    "/admin/questions",
     null,
     { domain: subdomain, round: 1, last_evaluated_key }
   );
-
-  // Ensure we always return a properly structured response
   const responseData = response.data;
   return {
     questions: responseData.questions || [],
