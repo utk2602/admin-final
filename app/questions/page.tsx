@@ -38,29 +38,66 @@ export default function QuestionsPage() {
   const [showPopup, setShowPopup] = useState(false)
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
+  const [lastEvaluatedKey, setLastEvaluatedKey] = useState<string>("")
+  const [hasMoreQuestions, setHasMoreQuestions] = useState(true)
 
   useEffect(() => {
     setShowPopup(false)
   }, [])
 
+  const fetchQuestionsData = async (key?: string) => {
+    if (!selectedSubDomain) return
+
+    setLoading(true)
+    try {
+      const response = await fetchQuestions(selectedSubDomain)
+      
+      if (response.content && response.content[selectedSubDomain]) {
+        const newQuestions = response.content[selectedSubDomain].items.map(item => ({
+          question: item.round1?.[0]?.question || "",
+          options: item.round1?.[0]?.options || [],
+          answer: item.round1?.[0]?.answer || ""
+        }))
+
+        if (key) {
+          
+          setQuestions(prev => [...prev, ...newQuestions])
+        } else {
+         
+          setQuestions(newQuestions)
+        }
+
+        
+        const newLastKey = response.content[selectedSubDomain].last_evaluated_key
+        setLastEvaluatedKey(newLastKey)
+        setHasMoreQuestions(!!newLastKey)
+      }
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        toast.error("Session expired. Please log in again.")
+      } else {
+        toast.error("Failed to fetch questions. Please try again.")
+      }
+      console.error("Error fetching questions:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (selectedSubDomain) {
-      setLoading(true)
-      fetchQuestions(selectedSubDomain)
-        .then((response) => {
-          setQuestions(response.questions as Question[])
-          setLoading(false)
-        })
-        .catch((error) => {
-          if (error.response?.status === 401) {
-            toast.error("Session expired. Please log in again.")
-          }
-          console.error("Error fetching questions:", error)
-          toast.error("Auth token might have expired. Please relogin again.")
-          setLoading(false)
-        })
+      // Reset pagination state when subdomain changes
+      setLastEvaluatedKey("")
+      setHasMoreQuestions(true)
+      fetchQuestionsData()
     }
   }, [selectedSubDomain])
+
+  const handleLoadMore = () => {
+    if (hasMoreQuestions && !loading) {
+      fetchQuestionsData(lastEvaluatedKey)
+    }
+  }
 
   const handleAddQuestion = async () => {
     const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "")
@@ -82,14 +119,10 @@ export default function QuestionsPage() {
         newQuestion.Image
       )
 
-      console.log("Response:", response) 
-
       if (!response) {
         toast.error("No response received from server.", { id: toastId })
         return
       }
-
-      
 
       if (response.ok) {
         toast.success("Question added successfully!", { id: toastId })
@@ -105,16 +138,12 @@ export default function QuestionsPage() {
         const fileInput = document.getElementById("file-upload") as HTMLInputElement
         if (fileInput) fileInput.value = ""
 
-        fetchQuestions(selectedSubDomain)
-          .then((response) => setQuestions(response.questions as Question[]))
-          .catch(() => {
-            toast.error("Failed to fetch updated questions. Please login again.")
-          })
+        fetchQuestionsData()
       } else {
         toast.success("question submitted")
       }
     } catch (err) {
-      console.error("Error occurred:", err) 
+      console.error("Error occurred:", err)
       toast.error("An error occurred. Please try again.", { id: toastId })
     }
   }
@@ -205,7 +234,7 @@ export default function QuestionsPage() {
           </CardContent>
         </Card>
 
-        {loading ? (
+        {loading && questions.length === 0 ? (
           <p className="text-center">Loading questions...</p>
         ) : (
           <Card className="bg-gray-900 border-gradient mt-8">
@@ -216,22 +245,35 @@ export default function QuestionsPage() {
             </CardHeader>
             <CardContent>
               {questions.length > 0 ? (
-                <ul className="space-y-4">
-                  {questions.map((question, index) => (
-                    <li key={index} className="border-b border-gray-700 pb-4">
-                      <h3 className="font-bold mb-2">{question.question}</h3>
-                      <ul className="list-disc pl-6">
-                        {Array.isArray(question.options) ? (
-                          question.options.map((option, optionIndex) => (
-                            <li key={optionIndex}>{option}</li>
-                          ))
-                        ) : (
-                          <li>No options available</li>
-                        )}
-                      </ul>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="space-y-4">
+                    {questions.map((question, index) => (
+                      <li key={index} className="border-b border-gray-700 pb-4">
+                        <h3 className="font-bold mb-2">{question.question}</h3>
+                        <ul className="list-disc pl-6">
+                          {Array.isArray(question.options) ? (
+                            question.options.map((option, optionIndex) => (
+                              <li key={optionIndex}>{option}</li>
+                            ))
+                          ) : (
+                            <li>No options available</li>
+                          )}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                  {hasMoreQuestions && (
+                    <div className="flex justify-center mt-6">
+                      <Button
+                        onClick={handleLoadMore}
+                        disabled={loading}
+                        className="bg-[#f4b41a] text-black hover:bg-[#e8b974]"
+                      >
+                        {loading ? "Loading..." : "Load More Questions"}
+                      </Button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p>No questions found for this subdomain.</p>
               )}
