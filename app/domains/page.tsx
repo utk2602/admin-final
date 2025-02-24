@@ -62,7 +62,6 @@ export default function DomainsPage() {
       }
     } catch (err) {
       setError("Failed to fetch data. Please Relogin.")
-      
     } finally {
       setLoading(false)
     }
@@ -88,7 +87,6 @@ export default function DomainsPage() {
       setStudentsData((prevData) => prevData.filter((student) => student.email !== email))
       setSelectedStudent(null)
     } catch (err) {
-      
       toast({
         title: "Error",
         description: "Failed to update status. Please try again.",
@@ -147,9 +145,9 @@ export default function DomainsPage() {
                   <thead>
                     <tr className="text-left border-b border-gray-700">
                       <th className="p-2">Email</th>
-                      
-                      
-                      
+                      <th className="p-2">Name</th>
+                      <th className="p-2">Status</th>
+                      <th className="p-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -177,40 +175,41 @@ export default function DomainsPage() {
                                   View Details
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="bg-gray-900 text-white">
+                              <DialogContent className="bg-gray-900 text-white max-h-96 overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Student Details</DialogTitle>
                                 </DialogHeader>
                                 <div className="mt-4">
                                   <h3 className="text-lg font-semibold mb-2">Email: {selectedStudent?.email}</h3>
-                                  
                                   <h4 className="text-md font-semibold mb-2">Questions:</h4>
-                                  {selectedStudent?.round1.map((question, index) => (
-                                    <div key={index} className="mb-4">
-                                      <p className="font-semibold">{question.question}</p>
-                                      <p className="italic">{question.answer}</p>
-                                    </div>
-                                  ))}
-                                  <div className="flex justify-end space-x-2 mt-4">
-                                    <Button
-                                      onClick={() => handleStatusUpdate(selectedStudent?.email || "", "qualified")}
-                                      className="bg-green-500 hover:bg-green-600 text-white"
-                                    >
-                                      Mark Qualified
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleStatusUpdate(selectedStudent?.email || "", "pending")}
-                                      className="bg-yellow-500 hover:bg-yellow-600 text-black"
-                                    >
-                                      Move to Pending
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleStatusUpdate(selectedStudent?.email || "", "unqualified")}
-                                      className="bg-red-500 hover:bg-red-600 text-white"
-                                    >
-                                      Mark Unqualified
-                                    </Button>
+                                  <div className="max-h-72 overflow-y-auto">
+                                    {selectedStudent?.round1.map((question, index) => (
+                                      <div key={index} className="mb-4">
+                                        <p className="font-semibold">{question.question}</p>
+                                        <p className="italic">{question.answer}</p>
+                                      </div>
+                                    ))}
                                   </div>
+                                </div>
+                                <div className="flex justify-end space-x-2 mt-4">
+                                  <Button
+                                    onClick={() => handleStatusUpdate(selectedStudent?.email || "", "qualified")}
+                                    className="bg-green-500 hover:bg-green-600 text-white"
+                                  >
+                                    Mark Qualified
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleStatusUpdate(selectedStudent?.email || "", "pending")}
+                                    className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                                  >
+                                    Move to Pending
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleStatusUpdate(selectedStudent?.email || "", "unqualified")}
+                                    className="bg-red-500 hover:bg-red-600 text-white"
+                                  >
+                                    Mark Unqualified
+                                  </Button>
                                 </div>
                               </DialogContent>
                             </Dialog>
@@ -237,4 +236,3 @@ export default function DomainsPage() {
     </div>
   )
 }
-
