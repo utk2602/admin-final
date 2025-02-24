@@ -44,38 +44,45 @@ export default function QuestionsPage() {
     setShowPopup(false)
   }, [])
 
-  const loadQuestions = async (isInitialLoad: boolean = false) => {
-    if (!selectedSubDomain) return
+  // Previous QuestionsPage implementation remains the same, but update the loadQuestions function:
 
-    setLoading(true)
-    try {
-      const response = await fetchQuestions(selectedSubDomain)
-      
-      if (response.questions && Array.isArray(response.questions)) {
-        if (isInitialLoad) {
-          // Reset questions for new subdomain selection
-          setQuestions(response.questions)
-        } else {
-          // Append new questions for pagination
-          setQuestions(prev => [...prev, ...response.questions])
-        }
-        
-        // Update last key from response
-        if (response.content && response.content[selectedSubDomain]) {
-          setLastKey(response.content[selectedSubDomain].last_evaluated_key || "")
-        }
-      }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please log in again.")
+const loadQuestions = async (isInitialLoad: boolean = false) => {
+  if (!selectedSubDomain) return
+
+  setLoading(true)
+  try {
+    const response = await fetchQuestions(selectedSubDomain, lastKey)
+    
+    if (response.questions && Array.isArray(response.questions)) {
+      const newQuestions = response.questions.map(q => ({
+        question: q.question,
+        options: Array.isArray(q.options) ? q.options : [],
+        answer: q.answer || ''
+      }))
+
+      if (isInitialLoad) {
+        setQuestions(newQuestions)
       } else {
-        toast.error("Failed to fetch questions. Please try again.")
+        setQuestions(prev => [...prev, ...newQuestions])
       }
-      console.error("Error fetching questions:", error)
-    } finally {
-      setLoading(false)
+      
+      // Update last key from response
+      if (response.content && response.content[selectedSubDomain]) {
+        const newLastKey = response.content[selectedSubDomain].last_evaluated_key
+        setLastKey(newLastKey || "")
+      }
     }
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      toast.error("Session expired. Please log in again.")
+    } else {
+      toast.error("Failed to fetch questions. Please try again.")
+    }
+    console.error("Error fetching questions:", error)
+  } finally {
+    setLoading(false)
   }
+}
 
   useEffect(() => {
     if (selectedSubDomain) {

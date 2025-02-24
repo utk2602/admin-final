@@ -4,9 +4,10 @@ import Cookies from "js-cookie";
 const BACKEND_URL = "https://enrollments-2025-backend.onrender.com";
 
 export interface Question {
-  options: any;
+  options: string[];
   question: string;
   answer: string;
+  correctIndex?: number;
 }
 
 interface QuestionData {
@@ -17,7 +18,7 @@ interface QuestionData {
 }
 
 export interface LoadQuestionsResponse {
-  questions: Question[] | PromiseLike<Question[]>;
+  questions: Question[];
   options: string[];
   status_code: number;
   content: {
@@ -30,7 +31,7 @@ export interface LoadQuestionsResponse {
 }
 
 export interface SubmitResponse {
-  ok: any;
+  ok: boolean;
   status: number;
   message: string;
 }
@@ -54,6 +55,12 @@ const ProtectedRequest = async <T = unknown>(
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
     };
+
+    // Don't set Content-Type for FormData
+    if (!(data instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const config = {
       method,
       url: `${BACKEND_URL}${endpoint}`,
@@ -68,9 +75,10 @@ const ProtectedRequest = async <T = unknown>(
 };
 
 interface DomainData {
-  content: DomainData;
-  items: string;
-  lastKey: string;
+  content: {
+    items: QuestionData[];
+    last_evaluated_key: string;
+  };
 }
 
 interface StatusData {
@@ -84,14 +92,13 @@ export async function fetchDomainData(
   domain: string,
   round: number,
   status: string,
-  last_evaluated_key: string,
-  option: string[]
+  last_evaluated_key: string
 ): Promise<DomainData> {
   const response = await ProtectedRequest<DomainData>(
     "GET",
     "/admin/fetch",
     null,
-    { domain, round, status, last_evaluated_key, option }
+    { domain, round, status, last_evaluated_key }
   );
   return response.data;
 }
@@ -110,20 +117,24 @@ export async function submitStatus(
   );
 }
 
-export async function fetchQuestions(subdomain: string): Promise<LoadQuestionsResponse> {
+export async function fetchQuestions(
+  subdomain: string,
+  last_evaluated_key: string = "start"
+): Promise<LoadQuestionsResponse> {
   const response = await ProtectedRequest<LoadQuestionsResponse>(
     "GET",
     "/domain/questions",
     null,
-    { domain: subdomain, round: 1 }
+    { domain: subdomain, round: 1, last_evaluated_key }
   );
+
+  // Ensure we always return a properly structured response
+  const responseData = response.data;
   return {
-    ...response.data,
-    questions: response.data.questions.map((q) => ({
-      question: q.question,
-      options: q.options || [],
-      correctIndex: q.correctIndex ?? -1,
-    })),
+    questions: responseData.questions || [],
+    options: responseData.options || [],
+    status_code: responseData.status_code || 200,
+    content: responseData.content || {}
   };
 }
 
@@ -156,7 +167,7 @@ export async function addQuestion(
       formData
     );
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(error.response?.data?.message || "An error occurred while adding the question.");
   }
 }
