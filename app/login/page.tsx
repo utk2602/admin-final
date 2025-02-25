@@ -20,8 +20,21 @@ const allowedEmails = new Set([
   "adityakumar.verma2022@vitstudent.ac.in",
   "aryasadanand.patil2022@vitstudent.ac.in",
   "varun.satish2022@vitstudent.ac.in",
-  "utkarsh.2023@vitstudent.ac.in", 
+  "utkarsh.2023@vitstudent.ac.in",
+  "aryamanghai28@gmail.com",
+  "vaishvi.verma013@gmail.com",
+  "anshuagrawal123456@gmail.com",
+  "Sanjhana.a2023@vitstudent.ac.in",
+  "shreyasinghal2705@gmail.com",
+  "sahaanisha05@gmail.com",
+  "neel.lads2004@gmail.com",
+  "Aditi.g.krishnan@gmail.com",
+  "kritim724@gmail.com",
+  "karishmarahaman19@gmail.com",
+  "madhavjuneja.29@gmail.com",
+  "shubhampr3012@gmail.com"
 ]);
+
 
 export default function Home() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
