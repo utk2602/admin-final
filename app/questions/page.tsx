@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Toaster, toast } from "react-hot-toast"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 
 const DOMAIN_MAPPING = [
   "UI/UX",
@@ -44,45 +46,44 @@ export default function QuestionsPage() {
     setShowPopup(false)
   }, [])
 
-  // Previous QuestionsPage implementation remains the same, but update the loadQuestions function:
+  const loadQuestions = async (isInitialLoad: boolean = false) => {
+    if (!selectedSubDomain) return
 
-const loadQuestions = async (isInitialLoad: boolean = false) => {
-  if (!selectedSubDomain) return
-
-  setLoading(true)
-  try {
-    const response = await fetchQuestions(selectedSubDomain, lastKey)
-    
-    if (response.questions && Array.isArray(response.questions)) {
-      const newQuestions = response.questions.map(q => ({
-        question: q.question,
-        options: Array.isArray(q.options) ? q.options : [],
-        answer: q.answer || ''
-      }))
-
-      if (isInitialLoad) {
-        setQuestions(newQuestions)
-      } else {
-        setQuestions(prev => [...prev, ...newQuestions])
-      }
+    setLoading(true)
+    try {
+      const response = await fetchQuestions(selectedSubDomain, lastKey)
       
-      // Update last key from response
-      if (response.content && response.content[selectedSubDomain]) {
-        const newLastKey = response.content[selectedSubDomain].last_evaluated_key
-        setLastKey(newLastKey || "")
+      if (response.questions && Array.isArray(response.questions)) {
+        const newQuestions = response.questions.map(q => ({
+          question: q.question,
+          options: Array.isArray(q.options) ? q.options : [],
+          answer: q.answer || '',
+          correctIndex: q.correctIndex
+        }))
+
+        if (isInitialLoad) {
+          setQuestions(newQuestions)
+        } else {
+          setQuestions(prev => [...prev, ...newQuestions])
+        }
+        
+        // Update last key from response
+        if (response.content && response.content[selectedSubDomain]) {
+          const newLastKey = response.content[selectedSubDomain].last_evaluated_key
+          setLastKey(newLastKey || "")
+        }
       }
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        toast.error("Session expired. Please log in again.")
+      } else {
+        toast.error("Failed to fetch questions. Please try again.")
+      }
+      console.error("Error fetching questions:", error)
+    } finally {
+      setLoading(false)
     }
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      toast.error("Session expired. Please log in again.")
-    } else {
-      toast.error("Failed to fetch questions. Please try again.")
-    }
-    console.error("Error fetching questions:", error)
-  } finally {
-    setLoading(false)
   }
-}
 
   useEffect(() => {
     if (selectedSubDomain) {
@@ -155,6 +156,13 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
     setNewQuestion((prev) => ({ ...prev, Image: file }))
   }
 
+  // Helper function to determine question type
+  const getQuestionType = (options: string[]) => {
+    if (!options || options.length === 0) return "Subjective";
+    if (options.length === 4) return "Objective";
+    return "Invalid";
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
@@ -190,34 +198,47 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
               />
 
               <div className="space-y-2">
+                <p className="text-sm text-gray-300">
+                  Leave all options empty for a subjective question or fill in all 4 for an objective question.
+                </p>
                 {newQuestion.options.map((option, index) => (
-                  <Input
-                    key={index}
-                    type="text"
-                    placeholder={`Option ${index + 1}`}
-                    value={option}
-                    onChange={(e) => {
-                      const updatedOptions = [...newQuestion.options]
-                      updatedOptions[index] = e.target.value
-                      setNewQuestion({ ...newQuestion, options: updatedOptions })
-                    }}
-                    className="bg-gray-800 text-white"
-                  />
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      type="text"
+                      placeholder={`Option ${index + 1}`}
+                      value={option}
+                      onChange={(e) => {
+                        const updatedOptions = [...newQuestion.options]
+                        updatedOptions[index] = e.target.value
+                        setNewQuestion({ ...newQuestion, options: updatedOptions })
+                      }}
+                      className="bg-gray-800 text-white flex-grow"
+                    />
+                    {/* Only show radio buttons if there's text in at least one option */}
+                    {newQuestion.options.some(opt => opt.trim() !== "") && (
+                      <RadioGroup 
+                        value={newQuestion.correctIndex.toString()} 
+                        onValueChange={(value) => setNewQuestion({
+                          ...newQuestion,
+                          correctIndex: parseInt(value)
+                        })}
+                        className="flex"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <RadioGroupItem 
+                            value={index.toString()} 
+                            id={`correct-${index}`}
+                            className="text-[#f4b41a]"
+                          />
+                          <Label htmlFor={`correct-${index}`} className="text-sm">
+                            Correct
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    )}
+                  </div>
                 ))}
               </div>
-
-              <Input
-                type="number"
-                placeholder="Correct Answer (Index)"
-                value={newQuestion.correctIndex}
-                onChange={(e) =>
-                  setNewQuestion({
-                    ...newQuestion,
-                    correctIndex: Number(e.target.value),
-                  })
-                }
-                className="bg-gray-800 text-white"
-              />
 
               <Input
                 id="file-upload"
@@ -252,21 +273,39 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
                     {questions.map((question, index) => (
                       <li key={index} className="border-b border-gray-700 pb-4">
                         <h3 className="font-bold mb-2">{question.question}</h3>
-                        <ul className="list-disc pl-6">
-                          {Array.isArray(question.options) ? (
-                            question.options.map((option, optionIndex) => (
-                              <li key={optionIndex}>{option}</li>
-                            ))
-                          ) : (
-                            <li>No options available</li>
-                          )}
-                        </ul>
+                        <div className="text-sm text-gray-400 mb-2">
+                          Type: {getQuestionType(question.options)}
+                        </div>
+                        {Array.isArray(question.options) && question.options.length > 0 ? (
+                          <ul className="list-disc pl-6">
+                            {question.options.map((option, optionIndex) => (
+                              <li key={optionIndex} className={
+                                optionIndex === question.correctIndex ? "text-[#f4b41a] font-bold" : ""
+                              }>
+                                {option} {optionIndex === question.correctIndex && "✓"}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="italic text-gray-400">Subjective question (no options)</p>
+                        )}
+                        {question.options.length === 4 && question.correctIndex !== undefined && (
+                          <p className="mt-2 text-sm text-[#f4b41a]">
+                            Correct answer: Option {question.correctIndex + 1}
+                          </p>
+                        )}
                       </li>
                     ))}
                   </ul>
                   {lastKey && (
                     <div className="flex justify-center mt-6">
-                      
+                      <Button 
+                        onClick={handleLoadMore} 
+                        disabled={loading || !lastKey}
+                        className="bg-[#f4b41a] text-black hover:bg-[#e8b974]"
+                      >
+                        {loading ? "Loading..." : "Load More"}
+                      </Button>
                     </div>
                   )}
                 </>

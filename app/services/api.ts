@@ -55,8 +55,7 @@ const ProtectedRequest = async <T = unknown>(
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
     };
-
-   
+    
     if (!(data instanceof FormData)) {
       headers["Content-Type"] = "application/json";
     }
@@ -141,7 +140,7 @@ export async function addQuestion(
   domain: string,
   question: string,
   options: string[],
-  correctIndex: number | null,
+  correctIndex: number,
   imageFile: File | null
 ): Promise<SubmitResponse> {
   const formData = new FormData();
@@ -149,9 +148,10 @@ export async function addQuestion(
   formData.append("domain", domain);
   formData.append("question", question);
 
-  if (options.length === 4 && correctIndex !== null) {
+  // Only include options and correctIndex for objective questions (exactly 4 options)
+  if (options.length === 4) {
     formData.append("options", JSON.stringify(options));
-    formData.append("correctIndex", (correctIndex - 1).toString());
+    formData.append("correctIndex", correctIndex.toString());
   }
 
   if (imageFile) {
