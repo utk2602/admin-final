@@ -21,19 +21,19 @@ const allowedEmails = new Set([
   "aryasadanand.patil2022@vitstudent.ac.in",
   "varun.satish2022@vitstudent.ac.in",
   "utkarsh.2023@vitstudent.ac.in",
-  "aryamanghai28@gmail.com",
-  "vaishvi.verma013@gmail.com",
-  "anshuagrawal123456@gmail.com",
+  "aryaman.ghai2023@vitstudent.ac.in",
+  "aksh.agrawal2023@vitstudent.ac.in",
   "Sanjhana.a2023@vitstudent.ac.in",
-  "shreyasinghal2705@gmail.com",
-  "sahaanisha05@gmail.com",
-  "neel.lads2004@gmail.com",
-  "Aditi.g.krishnan@gmail.com",
-  "kritim724@gmail.com",
-  "karishmarahaman19@gmail.com",
-  "madhavjuneja.29@gmail.com",
-  "shubhampr3012@gmail.com"
+  "shreya.singhal2023@vitstudent.ac.in",
+  "anisha.saha2023a@vitstudent.ac.in",
+  "neel.ladani2023@vitstudent.ac.in",
+  "aditi.gkrishnan2023@vitstudent.ac.in",
+  "kriti.maheshwari2023@vitstudent.ac.in",
+  "karishma.rahaman2023@vitstudent.ac.in",
+  "shubham.prasad2023@vitstudent.ac.in"
 ]);
+
+
 
 
 export default function Home() {

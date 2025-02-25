@@ -70,10 +70,7 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
           correctIndex: isObjective && q.correctIndex !== undefined ? q.correctIndex : null
         };
       })
-
-      // Log the processed questions
       
-
       if (isInitialLoad) {
         setQuestions(newQuestions)
       } else {
@@ -89,7 +86,7 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
     if (error.response?.status === 401) {
       toast.error("Session expired. Please log in again.")
     } else {
-      toast.error("Failed to fetch questions. Please try again.")
+      toast.error("Failed to load questions. Please try again.")
     }
     console.error("Error fetching questions:", error)
   } finally {
@@ -112,18 +109,27 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
   }
 
   const handleAddQuestion = async () => {
+    // Check if question is empty
+    if (!newQuestion.question.trim()) {
+      toast.error("Question cannot be empty. Please enter a question.")
+      return
+    }
+    
+    // Check if subdomain is selected
+    if (!selectedSubDomain) {
+      toast.error("Please select a subdomain before adding a question.")
+      return
+    }
+
     const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "")
   
     if (filteredOptions.length !== 0 && filteredOptions.length !== 4) {
-      toast.error("You must enter exactly 4 options or leave them all empty.")
+      toast.error("Please enter either all 4 options for an objective question or leave all options empty for a subjective question.")
       return
     }
   
     // Determine if this is an objective question (has 4 options)
     const isObjective = filteredOptions.length === 4;
-    
-    // Log the question being submitted with conditional correctIndex
-    
   
     const toastId = toast.loading("Adding question...")
   
@@ -140,9 +146,8 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
         newQuestion.Image
       )
       
-      console.log(response);
       if (!response) {
-        toast.error("No response received from server.", { id: toastId })
+        toast.error("No response received from server. Please try again.", { id: toastId })
         return
       }
   
@@ -163,18 +168,17 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
         setLastKey("start")
         loadQuestions(true)
       } else {
-        toast.success("Question submitted")
+        toast.success("Question successfully submitted", { id: toastId })
       }
     } catch (err) {
       console.error("Error occurred:", err)
-      toast.error("An error occurred. Please try again.", { id: toastId })
+      toast.error("Failed to add question. Please try again later.", { id: toastId })
     }
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null
     setNewQuestion((prev) => ({ ...prev, Image: file }))
-   
   }
 
   const getQuestionType = (options: string[]) => {
@@ -182,12 +186,6 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
     if (options.length === 4) return "Objective";
     return "Invalid";
   }
-
-  // Log whenever the correctIndex changes
-  useEffect(() => {
-    const isObjective = newQuestion.options.filter(opt => opt.trim() !== "").length === 4;
-   
-  }, [newQuestion.correctIndex, newQuestion.options]);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -217,7 +215,7 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
               </Select>
 
               <Textarea
-                placeholder="Question"
+                placeholder="Question (required)"
                 value={newQuestion.question}
                 onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
                 className="bg-gray-800 text-white"
@@ -236,10 +234,6 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
                       onChange={(e) => {
                         const updatedOptions = [...newQuestion.options]
                         updatedOptions[index] = e.target.value 
-                        
-                        // Log the option being updated
-                        
-                        
                         setNewQuestion({ ...newQuestion, options: updatedOptions })
                       }}
                       className="bg-gray-800 text-white flex-grow"
@@ -249,8 +243,6 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
                       <RadioGroup 
                         value={newQuestion.correctIndex.toString()} 
                         onValueChange={(value) => {
-                          // Log the correctIndex being updated
-                          
                           setNewQuestion({
                             ...newQuestion,
                             correctIndex: parseInt(value)
@@ -284,12 +276,7 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
 
               <div className="flex justify-end space-x-2">
                 <Button 
-                  onClick={() => {
-                    // Log the current question state before submitting
-                    const isObjective = newQuestion.options.filter(opt => opt.trim() !== "").length === 4;
-                    
-                    handleAddQuestion();
-                  }} 
+                  onClick={handleAddQuestion} 
                   className="bg-[#f4b41a] text-black hover:bg-[#e8b974]"
                 >
                   Add Question
@@ -305,64 +292,68 @@ const loadQuestions = async (isInitialLoad: boolean = false) => {
           <Card className="bg-gray-900 border-gradient mt-8">
             <CardHeader>
               <CardTitle className="text-2xl text-[#f4b41a] pixel-font">
-                Existing Questions for {selectedSubDomain}
+                Existing Questions for {selectedSubDomain || "Selected Domain"}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {questions.length > 0 ? (
-                <>
-                  <ul className="space-y-4">
-                  {questions.map((question, index) => {
-  // Determine if it's an objective question
-  const isObjective = Array.isArray(question.options) && question.options.length === 4;
-  
-  return (
-    <li key={index} className="border-b border-gray-700 pb-4">
-      <h3 className="font-bold mb-2">{question.question}</h3>
-      <div className="text-sm text-gray-400 mb-2">
-        Type: {getQuestionType(question.options)}
-      </div>
-      
-      {/* Only show options list for objective questions */}
-      {isObjective ? (
-        <ul className="list-disc pl-6">
-          {question.options.map((option, optionIndex) => (
-            <li key={optionIndex} className={
-              // Important: Check correctIndex !== undefined first 
-              isObjective && question.correctIndex !== undefined && question.correctIndex === optionIndex 
-                ? "text-[#f4b41a] font-bold" : ""
-            }>
-              {option} {
-                isObjective && 
-                question.correctIndex !== undefined && 
-                question.correctIndex === optionIndex && 
-                "✓"
-              }
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="italic text-gray-400">Subjective question (no options)</p>
-      )}
-      
-      {/* Use strict comparison for correctIndex check */}
-      {isObjective && question.correctIndex !== undefined && question.correctIndex !== null && (
-        <p className="mt-2 text-sm text-[#f4b41a]">
-          Correct answer: Option {question.correctIndex + 1}
-        </p>
-      )}
-    </li>
-  );
-})}
-                  </ul>
-                  {lastKey && (
-                    <div className="flex justify-center mt-6">
-                     
-                    </div>
-                  )}
-                </>
+              {selectedSubDomain ? (
+                questions.length > 0 ? (
+                  <>
+                    <ul className="space-y-4">
+                    {questions.map((question, index) => {
+                      // Determine if it's an objective question
+                      const isObjective = Array.isArray(question.options) && question.options.length === 4;
+                      
+                      return (
+                        <li key={index} className="border-b border-gray-700 pb-4">
+                          <h3 className="font-bold mb-2">{question.question}</h3>
+                          <div className="text-sm text-gray-400 mb-2">
+                            Type: {getQuestionType(question.options)}
+                          </div>
+                          
+                          {/* Only show options list for objective questions */}
+                          {isObjective ? (
+                            <ul className="list-disc pl-6">
+                              {question.options.map((option, optionIndex) => (
+                                <li key={optionIndex} className={
+                                  // Important: Check correctIndex !== undefined first 
+                                  isObjective && question.correctIndex !== undefined && question.correctIndex === optionIndex 
+                                    ? "text-[#f4b41a] font-bold" : ""
+                                }>
+                                  {option} {
+                                    isObjective && 
+                                    question.correctIndex !== undefined && 
+                                    question.correctIndex === optionIndex && 
+                                    "✓"
+                                  }
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="italic text-gray-400">Subjective question (no options)</p>
+                          )}
+                          
+                          {/* Use strict comparison for correctIndex check */}
+                          {isObjective && question.correctIndex !== undefined && question.correctIndex !== null && (
+                            <p className="mt-2 text-sm text-[#f4b41a]">
+                              Correct answer: Option {question.correctIndex + 1}
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
+                    </ul>
+                    {lastKey && (
+                      <div className="flex justify-center mt-6">
+                        {/* Button for load more functionality if needed */}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p>No questions found for this subdomain.</p>
+                )
               ) : (
-                <p>No questions found for this subdomain.</p>
+                <p>Please select a subdomain to view questions.</p>
               )}
             </CardContent>
           </Card>
