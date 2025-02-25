@@ -35,6 +35,7 @@ const DOMAIN_MAPPING = [
   "APP",
   "AI/ML",
   "RND",
+  "CC",
 ]
 
 const STATUS_OPTIONS = ["unmarked", "pending", "qualified", "unqualified"]

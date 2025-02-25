@@ -25,6 +25,7 @@ const DOMAIN_MAPPING = [
   "APP",
   "AI/ML",
   "RND",
+  "CC",
 ]
 
 export default function QuestionsPage() {
@@ -46,48 +47,58 @@ export default function QuestionsPage() {
     setShowPopup(false)
   }, [])
 
-  const loadQuestions = async (isInitialLoad: boolean = false) => {
-    if (!selectedSubDomain) return
+  
+// In loadQuestions function
+const loadQuestions = async (isInitialLoad: boolean = false) => {
+  if (!selectedSubDomain) return
 
-    setLoading(true)
-    try {
-      const response = await fetchQuestions(selectedSubDomain, lastKey)
-      
-      if (response.questions && Array.isArray(response.questions)) {
-        const newQuestions = response.questions.map(q => ({
-          question: q.question,
-          options: Array.isArray(q.options) ? q.options : [],
-          answer: q.answer || '',
-          correctIndex: q.correctIndex
-        }))
-
-        if (isInitialLoad) {
-          setQuestions(newQuestions)
-        } else {
-          setQuestions(prev => [...prev, ...newQuestions])
-        }
+  setLoading(true)
+  try {
+    const response = await fetchQuestions(selectedSubDomain, lastKey)
+    
+    if (response.questions && Array.isArray(response.questions)) {
+      const newQuestions = response.questions.map(q => {
+        // Determine if this is an objective question by checking if options is an array with 4 items
+        const isObjective = Array.isArray(q.options) && q.options.length === 4;
         
-        // Update last key from response
-        if (response.content && response.content[selectedSubDomain]) {
-          const newLastKey = response.content[selectedSubDomain].last_evaluated_key
-          setLastKey(newLastKey || "")
-        }
-      }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please log in again.")
+        return {
+          question: q.question,
+          // Only include options if they exist and are valid
+          options: isObjective ? q.options : [],
+          answer: q.answer || '',
+          // Handle correctIndex explicitly - important for index 0
+          correctIndex: isObjective && q.correctIndex !== undefined ? q.correctIndex : null
+        };
+      })
+
+      // Log the processed questions
+      
+
+      if (isInitialLoad) {
+        setQuestions(newQuestions)
       } else {
-        toast.error("Failed to fetch questions. Please try again.")
+        setQuestions(prev => [...prev, ...newQuestions])
       }
-      console.error("Error fetching questions:", error)
-    } finally {
-      setLoading(false)
+      
+      if (response.content && response.content[selectedSubDomain]) {
+        const newLastKey = response.content[selectedSubDomain].last_evaluated_key
+        setLastKey(newLastKey || "")
+      }
     }
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      toast.error("Session expired. Please log in again.")
+    } else {
+      toast.error("Failed to fetch questions. Please try again.")
+    }
+    console.error("Error fetching questions:", error)
+  } finally {
+    setLoading(false)
   }
+}
 
   useEffect(() => {
     if (selectedSubDomain) {
-      // Reset state and load initial questions when subdomain changes
       setLastKey("start")
       setQuestions([])
       loadQuestions(true)
@@ -102,32 +113,42 @@ export default function QuestionsPage() {
 
   const handleAddQuestion = async () => {
     const filteredOptions = newQuestion.options.filter((opt) => opt.trim() !== "")
-
+  
     if (filteredOptions.length !== 0 && filteredOptions.length !== 4) {
       toast.error("You must enter exactly 4 options or leave them all empty.")
       return
     }
-
+  
+    // Determine if this is an objective question (has 4 options)
+    const isObjective = filteredOptions.length === 4;
+    
+    // Log the question being submitted with conditional correctIndex
+    
+  
     const toastId = toast.loading("Adding question...")
-
+  
     try {
+      // Important: We need to explicitly check if it's an objective question
+      // and pass the correctIndex (even if it's 0) only for objective questions
       const response = await addQuestion(
         newQuestion.round,
         selectedSubDomain,
         newQuestion.question,
-        filteredOptions.length === 4 ? filteredOptions : [],
-        newQuestion.correctIndex,
+        isObjective ? filteredOptions : [],
+        // Pass correctIndex explicitly only for objective questions
+        isObjective ? newQuestion.correctIndex : null,
         newQuestion.Image
       )
-
+      
+      console.log(response);
       if (!response) {
         toast.error("No response received from server.", { id: toastId })
         return
       }
-
+  
       if (response.ok) {
         toast.success("Question added successfully!", { id: toastId })
-
+  
         setNewQuestion({
           question: "",
           options: ["", "", "", ""],
@@ -135,11 +156,10 @@ export default function QuestionsPage() {
           round: "1",
           Image: null,
         })
-
+  
         const fileInput = document.getElementById("file-upload") as HTMLInputElement
         if (fileInput) fileInput.value = ""
-
-        // Refresh questions after adding new one
+  
         setLastKey("start")
         loadQuestions(true)
       } else {
@@ -154,14 +174,20 @@ export default function QuestionsPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null
     setNewQuestion((prev) => ({ ...prev, Image: file }))
+   
   }
 
-  // Helper function to determine question type
   const getQuestionType = (options: string[]) => {
     if (!options || options.length === 0) return "Subjective";
     if (options.length === 4) return "Objective";
     return "Invalid";
   }
+
+  // Log whenever the correctIndex changes
+  useEffect(() => {
+    const isObjective = newQuestion.options.filter(opt => opt.trim() !== "").length === 4;
+   
+  }, [newQuestion.correctIndex, newQuestion.options]);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -209,7 +235,11 @@ export default function QuestionsPage() {
                       value={option}
                       onChange={(e) => {
                         const updatedOptions = [...newQuestion.options]
-                        updatedOptions[index] = e.target.value
+                        updatedOptions[index] = e.target.value 
+                        
+                        // Log the option being updated
+                        
+                        
                         setNewQuestion({ ...newQuestion, options: updatedOptions })
                       }}
                       className="bg-gray-800 text-white flex-grow"
@@ -218,10 +248,14 @@ export default function QuestionsPage() {
                     {newQuestion.options.some(opt => opt.trim() !== "") && (
                       <RadioGroup 
                         value={newQuestion.correctIndex.toString()} 
-                        onValueChange={(value) => setNewQuestion({
-                          ...newQuestion,
-                          correctIndex: parseInt(value)
-                        })}
+                        onValueChange={(value) => {
+                          // Log the correctIndex being updated
+                          
+                          setNewQuestion({
+                            ...newQuestion,
+                            correctIndex: parseInt(value)
+                          })
+                        }}
                         className="flex"
                       >
                         <div className="flex items-center space-x-1">
@@ -249,7 +283,15 @@ export default function QuestionsPage() {
               />
 
               <div className="flex justify-end space-x-2">
-                <Button onClick={handleAddQuestion} className="bg-[#f4b41a] text-black hover:bg-[#e8b974]">
+                <Button 
+                  onClick={() => {
+                    // Log the current question state before submitting
+                    const isObjective = newQuestion.options.filter(opt => opt.trim() !== "").length === 4;
+                    
+                    handleAddQuestion();
+                  }} 
+                  className="bg-[#f4b41a] text-black hover:bg-[#e8b974]"
+                >
                   Add Question
                 </Button>
               </div>
@@ -270,42 +312,52 @@ export default function QuestionsPage() {
               {questions.length > 0 ? (
                 <>
                   <ul className="space-y-4">
-                    {questions.map((question, index) => (
-                      <li key={index} className="border-b border-gray-700 pb-4">
-                        <h3 className="font-bold mb-2">{question.question}</h3>
-                        <div className="text-sm text-gray-400 mb-2">
-                          Type: {getQuestionType(question.options)}
-                        </div>
-                        {Array.isArray(question.options) && question.options.length > 0 ? (
-                          <ul className="list-disc pl-6">
-                            {question.options.map((option, optionIndex) => (
-                              <li key={optionIndex} className={
-                                optionIndex === question.correctIndex ? "text-[#f4b41a] font-bold" : ""
-                              }>
-                                {option} {optionIndex === question.correctIndex && "✓"}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="italic text-gray-400">Subjective question (no options)</p>
-                        )}
-                        {question.options.length === 4 && question.correctIndex !== undefined && (
-                          <p className="mt-2 text-sm text-[#f4b41a]">
-                            Correct answer: Option {question.correctIndex + 1}
-                          </p>
-                        )}
-                      </li>
-                    ))}
+                  {questions.map((question, index) => {
+  // Determine if it's an objective question
+  const isObjective = Array.isArray(question.options) && question.options.length === 4;
+  
+  return (
+    <li key={index} className="border-b border-gray-700 pb-4">
+      <h3 className="font-bold mb-2">{question.question}</h3>
+      <div className="text-sm text-gray-400 mb-2">
+        Type: {getQuestionType(question.options)}
+      </div>
+      
+      {/* Only show options list for objective questions */}
+      {isObjective ? (
+        <ul className="list-disc pl-6">
+          {question.options.map((option, optionIndex) => (
+            <li key={optionIndex} className={
+              // Important: Check correctIndex !== undefined first 
+              isObjective && question.correctIndex !== undefined && question.correctIndex === optionIndex 
+                ? "text-[#f4b41a] font-bold" : ""
+            }>
+              {option} {
+                isObjective && 
+                question.correctIndex !== undefined && 
+                question.correctIndex === optionIndex && 
+                "✓"
+              }
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="italic text-gray-400">Subjective question (no options)</p>
+      )}
+      
+      {/* Use strict comparison for correctIndex check */}
+      {isObjective && question.correctIndex !== undefined && question.correctIndex !== null && (
+        <p className="mt-2 text-sm text-[#f4b41a]">
+          Correct answer: Option {question.correctIndex + 1}
+        </p>
+      )}
+    </li>
+  );
+})}
                   </ul>
                   {lastKey && (
                     <div className="flex justify-center mt-6">
-                      <Button 
-                        onClick={handleLoadMore} 
-                        disabled={loading || !lastKey}
-                        className="bg-[#f4b41a] text-black hover:bg-[#e8b974]"
-                      >
-                        {loading ? "Loading..." : "Load More"}
-                      </Button>
+                     
                     </div>
                   )}
                 </>

@@ -7,7 +7,7 @@ export interface Question {
   options: string[];
   question: string;
   answer: string;
-  correctIndex?: number;
+  correctIndex?: number | null ;
 }
 
 interface QuestionData {
@@ -140,7 +140,7 @@ export async function addQuestion(
   domain: string,
   question: string,
   options: string[],
-  correctIndex: number,
+  correctIndex: number | null,
   imageFile: File | null
 ): Promise<SubmitResponse> {
   const formData = new FormData();
@@ -151,7 +151,11 @@ export async function addQuestion(
   // Only include options and correctIndex for objective questions (exactly 4 options)
   if (options.length === 4) {
     formData.append("options", JSON.stringify(options));
-    formData.append("correctIndex", correctIndex.toString());
+    // Important: Check explicitly if correctIndex is not null or undefined
+    // This handles the case when correctIndex is 0
+    if (correctIndex !== null && correctIndex !== undefined) {
+      formData.append("correctIndex", correctIndex.toString());
+    }
   }
 
   if (imageFile) {
