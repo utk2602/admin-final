@@ -32,6 +32,7 @@ const allowedEmails = new Set([
   "karishma.rahaman2023@vitstudent.ac.in",
   "shubham.prasad2023@vitstudent.ac.in",
   "medha.s2023@vitstudent.ac.in",
+  "vaishvi.verma2023@vitstudent.ac.in",
 ]);
 
 
