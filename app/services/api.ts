@@ -6,8 +6,10 @@ const BACKEND_URL = "https://enrollments-2025-backend.onrender.com";
 export interface Question {
   options: string[];
   question: string;
-  answer: string;
-  correctIndex?: number | null ;
+  answer?: string;
+  correctIndex?: number | null;
+  type?: "objective" | "subjective";
+  index?: number;
 }
 
 interface QuestionData {
@@ -18,7 +20,15 @@ interface QuestionData {
 }
 
 export interface LoadQuestionsResponse {
-  questions: Question[];
+  questions?: Question[];
+  mcq_questions?: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+  }[];
+  desc_questions?: {
+    question: string;
+  }[];
   options: string[];
   status_code: number;
   content: {
@@ -26,7 +36,13 @@ export interface LoadQuestionsResponse {
       items: QuestionData[];
       options: string[];
       last_evaluated_key: string;
+      questionCount?: number; 
     };
+  };
+  meta?: {
+    mcq_count: number;
+    desc_count: number;
+    total_count?: number; 
   };
 }
 
@@ -116,23 +132,114 @@ export async function submitStatus(
   );
 }
 
+
+export async function getQuestionCount(subdomain: string): Promise<number> {
+  try {
+    
+    const response = await ProtectedRequest<{ count: number }>(
+      "GET",
+      "/admin/question-count",
+      null,
+      { domain: subdomain, round: 1 }
+    );
+    return response.data.count;
+  } catch (error: any) {
+    console.error("Error fetching question count:", error);
+    
+    
+    try {
+      const response = await fetchQuestions(subdomain);
+      
+      
+      if (response.meta?.total_count !== undefined) {
+        return response.meta.total_count;
+      }
+      
+      
+      return response.questions?.length || 0;
+    } catch (fetchError) {
+      console.error("Error in fallback count method:", fetchError);
+      
+      return 0;
+    }
+  }
+}
+
 export async function fetchQuestions(
   subdomain: string,
   last_evaluated_key: string = "start"
 ): Promise<LoadQuestionsResponse> {
-  const response = await ProtectedRequest<LoadQuestionsResponse>(
-    "GET",
-    "/admin/questions",
-    null,
-    { domain: subdomain, round: 1, last_evaluated_key }
-  );
-  const responseData = response.data;
-  return {
-    questions: responseData.questions || [],
-    options: responseData.options || [],
-    status_code: responseData.status_code || 200,
-    content: responseData.content || {}
-  };
+  try {
+    const response = await ProtectedRequest<LoadQuestionsResponse>(
+      "GET",
+      "/admin/questions",
+      null,
+      { domain: subdomain, round: 1, last_evaluated_key }
+    );
+    
+    const responseData = response.data;
+    
+    let transformedQuestions: Question[] = [];
+    
+    if (responseData.mcq_questions && Array.isArray(responseData.mcq_questions)) {
+      const mcqQuestions = responseData.mcq_questions.map(mcq => ({
+        question: mcq.question,
+        options: mcq.options || ["", "", "", ""],
+        correctIndex: mcq.correctIndex,
+        type: "objective" as const
+      }));
+      transformedQuestions = [...transformedQuestions, ...mcqQuestions];
+    }
+    
+    if (responseData.desc_questions && Array.isArray(responseData.desc_questions)) {
+      const descQuestions = responseData.desc_questions.map(desc => ({
+        question: desc.question,
+        options: [],
+        correctIndex: null,
+        type: "subjective" as const
+      }));
+      transformedQuestions = [...transformedQuestions, ...descQuestions];
+    }
+    
+    if (responseData.questions && Array.isArray(responseData.questions) && 
+        (!responseData.mcq_questions && !responseData.desc_questions)) {
+      transformedQuestions = responseData.questions;
+    }
+    
+    
+    const totalCount = 
+      (responseData.meta?.mcq_count || 0) + 
+      (responseData.meta?.desc_count || 0) ||
+      transformedQuestions.length;
+    
+    return {
+      questions: transformedQuestions,
+      options: responseData.options || [],
+      status_code: responseData.status_code || 200,
+      content: responseData.content || {},
+      meta: {
+        mcq_count: (responseData.meta?.mcq_count || 0),
+        desc_count: (responseData.meta?.desc_count || 0),
+        total_count: totalCount
+      }
+    };
+  } catch (error: any) {
+    
+    if (error.response?.status === 404 || error.response?.data?.message?.includes("no questions")) {
+      return {
+        questions: [],
+        options: [],
+        status_code: 200,
+        content: {},
+        meta: {
+          mcq_count: 0,
+          desc_count: 0,
+          total_count: 0
+        }
+      };
+    }
+    throw error;
+  }
 }
 
 export async function addQuestion(
@@ -143,16 +250,20 @@ export async function addQuestion(
   correctIndex: number | null,
   imageFile: File | null
 ): Promise<SubmitResponse> {
+ 
+  const currentCount = await getQuestionCount(domain);
+  
+  
+  const questionIndex = currentCount + 1;
+  
   const formData = new FormData();
   formData.append("round", round);
   formData.append("domain", domain);
   formData.append("question", question);
-
-  // Only include options and correctIndex for objective questions (exactly 4 options)
+  formData.append("index", questionIndex.toString()); 
   if (options.length === 4) {
     formData.append("options", JSON.stringify(options));
-    // Important: Check explicitly if correctIndex is not null or undefined
-    // This handles the case when correctIndex is 0
+    
     if (correctIndex !== null && correctIndex !== undefined) {
       formData.append("correctIndex", correctIndex.toString());
     }
