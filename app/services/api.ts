@@ -10,6 +10,7 @@ export interface Question {
   correctIndex?: number | null;
   type?: "objective" | "subjective";
   index?: number;
+  image_url?: string; 
 }
 
 interface QuestionData {
@@ -25,9 +26,11 @@ export interface LoadQuestionsResponse {
     question: string;
     options: string[];
     correctIndex: number;
+    image_url?: string; // Added image property
   }[];
   desc_questions?: {
     question: string;
+    image_url?: string; // Added image property
   }[];
   options: string[];
   status_code: number;
@@ -186,7 +189,9 @@ export async function fetchQuestions(
         question: mcq.question,
         options: mcq.options || ["", "", "", ""],
         correctIndex: mcq.correctIndex,
-        type: "objective" as const
+        type: "objective" as const,
+        
+        ...(mcq.image_url ? { image_url: mcq.image_url } : {})
       }));
       transformedQuestions = [...transformedQuestions, ...mcqQuestions];
     }
@@ -196,7 +201,9 @@ export async function fetchQuestions(
         question: desc.question,
         options: [],
         correctIndex: null,
-        type: "subjective" as const
+        type: "subjective" as const,
+        
+        ...(desc.image_url ? { image_url: desc.image_url } : {})
       }));
       transformedQuestions = [...transformedQuestions, ...descQuestions];
     }
@@ -205,7 +212,6 @@ export async function fetchQuestions(
         (!responseData.mcq_questions && !responseData.desc_questions)) {
       transformedQuestions = responseData.questions;
     }
-    
     
     const totalCount = 
       (responseData.meta?.mcq_count || 0) + 
@@ -224,7 +230,6 @@ export async function fetchQuestions(
       }
     };
   } catch (error: any) {
-    
     if (error.response?.status === 404 || error.response?.data?.message?.includes("no questions")) {
       return {
         questions: [],
@@ -241,6 +246,7 @@ export async function fetchQuestions(
     throw error;
   }
 }
+
 
 export async function addQuestion(
   round: string,

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Toaster, toast } from "react-hot-toast"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import Image from "next/image"
 
 const DOMAIN_MAPPING = [
   "UI/UX",
@@ -45,6 +46,7 @@ export default function QuestionsPage() {
   const [lastKey, setLastKey] = useState<string>("start")
   const [questionCount, setQuestionCount] = useState<number>(0)
   const [initialLoadDone, setInitialLoadDone] = useState<boolean>(false)
+  const [imageError, setImageError] = useState<{[key: string]: boolean}>({})
 
   useEffect(() => {
     setShowPopup(false)
@@ -86,7 +88,6 @@ export default function QuestionsPage() {
           setLastKey(newLastKey || "")
         }
         
-        
         if (response.meta?.total_count !== undefined) {
           setQuestionCount(response.meta.total_count)
         }
@@ -119,15 +120,9 @@ export default function QuestionsPage() {
     }
   }, [selectedSubDomain])
 
-  const handleLoadMore = () => {
-    if (!loading && lastKey) {
-      loadQuestions()
-    }
-  }
+  
 
   const handleAddQuestion = async () => {
-    
-   
     const trimmedQuestion = newQuestion.question.trim()
     if (!trimmedQuestion) {
       toast.error("Question cannot be empty. Please enter a question.")
@@ -139,7 +134,6 @@ export default function QuestionsPage() {
       return
     }
   
-    
     const filteredOptions = newQuestion.options.map(opt => opt.trim()).filter(opt => opt !== "")
   
     if (filteredOptions.length !== 0 && filteredOptions.length !== 4) {
@@ -152,7 +146,6 @@ export default function QuestionsPage() {
     const toastId = toast.loading("Adding question...")
   
     try {
-      
       const response = await addQuestion(
         newQuestion.round,
         selectedSubDomain,
@@ -181,7 +174,6 @@ export default function QuestionsPage() {
         const fileInput = document.getElementById("file-upload") as HTMLInputElement
         if (fileInput) fileInput.value = ""
   
-        
         setLastKey("start")
         loadQuestionCount()
         loadQuestions(true)
@@ -207,6 +199,16 @@ export default function QuestionsPage() {
     if (!question.options || question.options.length === 0) return "Subjective";
     if (question.options.length === 4) return "Objective";
     return "Invalid";
+  }
+
+  const handleImageError = (index: number) => {
+    setImageError(prev => ({...prev, [index]: true}))
+  }
+
+  
+  const getImageUrl = (question: Question): string | undefined => {
+    
+    return question.image_url || question.image;
   }
 
   return (
@@ -348,9 +350,11 @@ export default function QuestionsPage() {
                 <>
                   <ul className="space-y-4">
                   {questions.map((question, index) => {
-                    
                     const isObjective = question.type === "objective" || 
                       (Array.isArray(question.options) && question.options.length === 4);
+                    
+                   
+                    const imageUrl = getImageUrl(question);
                     
                     return (
                       <li key={index} className="border-b border-gray-700 pb-4">
@@ -360,6 +364,18 @@ export default function QuestionsPage() {
                             #{question.index || "?"}
                           </span>
                         </div>
+                        
+                        {/* Display image if available */}
+                        {imageUrl && !imageError[index] && (
+                          <div className="mb-3">
+                            <img 
+                              src={imageUrl}
+                              alt={`Image for question ${question.index || index + 1}`}
+                              className="max-w-full md:max-w-md rounded-md border border-gray-700" 
+                              onError={() => handleImageError(index)}
+                            />
+                          </div>
+                        )}
                         
                         <div className="text-sm text-gray-400 mb-2">
                           Type: {getQuestionType(question)}
