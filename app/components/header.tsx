@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
+
 export default function Header() {
   const { signOut } = useAuth();
   const router = useRouter();
@@ -19,15 +20,15 @@ export default function Header() {
     <header className="bg-black text-white border-b border-yellow-400">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
+            <div className="flex items-center">
             <Image
-              src="https://enrollments-2025-frontend-12h7.vercel.app/IEEE-CS.svg"
+              src="/ieee cs.png"
               alt="IEEE-CS Logo"
               width={120}
               height={40}
               className="mr-4"
             />
-          </div>
+            </div>
 
           <div className="text-2xl font-bold tracking-wider text-yellow-400">ADMIN PORTAL</div>
 
