@@ -13,10 +13,14 @@ export interface Question {
   image_url?: string; 
 }
 
-interface QuestionData {
+// Updated interface to explicitly include all required fields
+export interface Student {
   email: string;
-  round1?: Question[];
-  score1?: number;
+  name: string;
+  domain: string;
+  status: string;
+  round1: Question[];
+  score1: number;
   options?: string[];
 }
 
@@ -26,17 +30,17 @@ export interface LoadQuestionsResponse {
     question: string;
     options: string[];
     correctIndex: number;
-    image_url?: string; // Added image property
+    image_url?: string;
   }[];
   desc_questions?: {
     question: string;
-    image_url?: string; // Added image property
+    image_url?: string;
   }[];
   options: string[];
   status_code: number;
   content: {
     [key: string]: {
-      items: QuestionData[];
+      items: Student[];
       options: string[];
       last_evaluated_key: string;
       questionCount?: number; 
@@ -92,9 +96,10 @@ const ProtectedRequest = async <T = unknown>(
   }
 };
 
+// Updated interface to explicitly include score1
 interface DomainData {
   content: {
-    items: QuestionData[];
+    items: Student[];  // Using the Student interface that includes score1
     last_evaluated_key: string;
   };
 }
@@ -112,12 +117,17 @@ export async function fetchDomainData(
   status: string,
   last_evaluated_key: string
 ): Promise<DomainData> {
+  // Make sure we explicitly request score1 in the query params if needed
   const response = await ProtectedRequest<DomainData>(
     "GET",
     "/admin/fetch",
     null,
-    { domain, round, status, last_evaluated_key }
+    { domain, round, status, last_evaluated_key, include_score: true }
   );
+  
+  // Log the response to debug if score1 is present
+  console.log("Domain data response:", response.data);
+  
   return response.data;
 }
 
@@ -135,10 +145,8 @@ export async function submitStatus(
   );
 }
 
-
 export async function getQuestionCount(subdomain: string): Promise<number> {
   try {
-    
     const response = await ProtectedRequest<{ count: number }>(
       "GET",
       "/admin/question-count",
@@ -149,15 +157,12 @@ export async function getQuestionCount(subdomain: string): Promise<number> {
   } catch (error: any) {
     console.error("Error fetching question count:", error);
     
-    
     try {
       const response = await fetchQuestions(subdomain);
-      
       
       if (response.meta?.total_count !== undefined) {
         return response.meta.total_count;
       }
-      
       
       return response.questions?.length || 0;
     } catch (fetchError) {
@@ -247,7 +252,6 @@ export async function fetchQuestions(
   }
 }
 
-
 export async function addQuestion(
   round: string,
   domain: string,
@@ -256,9 +260,7 @@ export async function addQuestion(
   correctIndex: number | null,
   imageFile: File | null
 ): Promise<SubmitResponse> {
- 
   const currentCount = await getQuestionCount(domain);
-  
   
   const questionIndex = currentCount + 1;
   
