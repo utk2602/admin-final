@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigation } from "@/hooks/useNavigation";
 
+
 export default function Home() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
   const { navigate } = useNavigation();
