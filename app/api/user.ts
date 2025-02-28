@@ -89,7 +89,7 @@ export async function addQuestion(
   round: number,
   domain: string,
   question: string,
-  imageFile?: File // Image file is now optional
+  imageFile?: File 
 ): Promise<SubmitResponse> {
   const formData = new FormData();
   formData.append("round", round.toString());
@@ -109,7 +109,7 @@ export async function addQuestion(
   return response.data;
 }
 
-// Function to handle adding a question
+
 export const handleAddQuestion = async (
   newQuestion: {
     question: string;
@@ -138,7 +138,7 @@ export const handleAddQuestion = async (
     }
 
     const response = await addQuestion(
-      Number(newQuestion.round), // Ensure round is a number
+      Number(newQuestion.round), 
       selectedSubDomain,
       newQuestion.question,
       imageFile ?? undefined

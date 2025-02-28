@@ -16,7 +16,7 @@ export const auth = getAuth(app)
 
 const provider = new GoogleAuthProvider();
   provider.setCustomParameters({
-    hd: "vitstudent.ac.in",
+    
     prompt: "select_account",
   });
 

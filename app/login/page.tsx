@@ -1,58 +1,15 @@
 "use client";
 import Cookies from "js-cookie";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigation } from "@/hooks/useNavigation";
 
-const allowedEmails = new Set([
-  "ansh.mehta2022@vitstudent.ac.in",
-  "ram.krishna2022@vitstudent.ac.in",
-  "medhansh.jain2022a@vitstudent.ac.in",
-  "krish.krunalbhai2022@vitstudent.ac.in",
-  "arjun.bector2022@vitstudent.ac.in",
-  "anubhav.batra2022@vitstudent.ac.in",
-  "akshit.anand2022@vitstudent.ac.in",
-  "parthsunil.jadhav2022@vitstudent.ac.in",
-  "dhriti.sharma2022@vitstudent.ac.in",
-  "gouri.kanade2022@vitstudent.ac.in",
-  "adityakumar.verma2022@vitstudent.ac.in",
-  "aryasadanand.patil2022@vitstudent.ac.in",
-  "varun.satish2022@vitstudent.ac.in",
-  "utkarsh.2023@vitstudent.ac.in",
-  "aryaman.ghai2023@vitstudent.ac.in",
-  "aksh.agrawal2023@vitstudent.ac.in",
-  "Sanjhana.a2023@vitstudent.ac.in",
-  "shreya.singhal2023@vitstudent.ac.in",
-  "anisha.saha2023a@vitstudent.ac.in",
-  "neel.ladani2023@vitstudent.ac.in",
-  "aditi.gkrishnan2023@vitstudent.ac.in",
-  "kriti.maheshwari2023@vitstudent.ac.in",
-  "karishma.rahaman2023@vitstudent.ac.in",
-  "shubham.prasad2023@vitstudent.ac.in",
-  "medha.s2023@vitstudent.ac.in",
-  "vaishvi.verma2023@vitstudent.ac.in",
-"madhav.juneja2023@vitstudent.ac.in",
-  "sanjhana.a2023@vitstudent.ac.in",
-
-
-]);
-
-
-
-
 export default function Home() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
   const { navigate } = useNavigation();
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user && !allowedEmails.has(user.email)) {
-      setError("Unauthorized email. Access denied.");
-      handleSignOut();
-    }
-  }, [user]);
 
   const handleSignIn = async () => {
     setError(null);
@@ -61,13 +18,14 @@ export default function Home() {
       if (userCredential && userCredential.user) {
         const idToken = await userCredential.user.getIdToken();
         Cookies.set("authToken", idToken, {
-          expires:1/24 ,
+          expires: 1/24,
         });
       }
     } catch (err) {
-      setError("");
+      setError("Error signing in. Please try again.or try with vit email id ");
     }
   };
+  
   const handleSignOut = async () => {
     setError(null);
     await signOut();
