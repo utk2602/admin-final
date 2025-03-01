@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input" 
 import { toast } from "@/components/ui/use-toast"
-import { Info, SortDesc, ArrowUpDown } from "lucide-react"
+import { Info, SortDesc, ArrowUpDown, Search } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const DOMAIN_MAPPING = [
@@ -41,6 +42,8 @@ export default function DomainsPage() {
   const [selectedYear, setSelectedYear] = useState("All")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -73,7 +76,7 @@ export default function DomainsPage() {
 
   useEffect(() => {
     filterAndSortStudents()
-  }, [studentsData, selectedYear, sortDirection])
+  }, [studentsData, selectedYear, sortDirection, searchQuery])
 
   const extractYearFromEmail = (email: string): string => {
     const matches = email.match(/(\d{2})(?=[a-zA-Z]?@)/) 
@@ -98,12 +101,22 @@ export default function DomainsPage() {
   const filterAndSortStudents = () => {
     let filtered = [...studentsData]
     
+    // Apply year filter
     if (selectedYear !== "All") {
       filtered = filtered.filter(student => 
         extractYearFromEmail(student.email) === selectedYear
       )
     }
     
+    // Apply search filter
+    if (searchQuery.trim() !== "") {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(student => 
+        student.email.toLowerCase().includes(query)
+      )
+    }
+    
+    // Apply sort
     const sorted = sortStudentsByScore(filtered, sortDirection)
     setFilteredStudents(sorted)
   }
@@ -119,14 +132,32 @@ export default function DomainsPage() {
     }
   }
 
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value)
+  }
+
+  const handleClearSearch = () => {
+    setSearchQuery("")
+  }
+
   const handleStatusUpdate = async (email: string, newStatus: string) => {
+    // Prevent multiple clicks
+    if (statusUpdateLoading) return
+    
+    setStatusUpdateLoading(true)
     try {
       const response = await submitStatus(email, selectedDomain, newStatus)
+      
+      // Optimistically update the UI
+      setStudentsData((prevData) => prevData.filter((student) => student.email !== email))
+      setFilteredStudents((prevFiltered) => prevFiltered.filter((student) => student.email !== email))
+      
       toast({
         title: "Status Updated",
         description: response.data.detail,
       })
-      setStudentsData((prevData) => prevData.filter((student) => student.email !== email))
+      
+      // Close dialog only after successful update
       setSelectedStudent(null)
       setDialogOpen(false)
     } catch (err) {
@@ -135,6 +166,8 @@ export default function DomainsPage() {
         description: "Failed to update status. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setStatusUpdateLoading(false)
     }
   }
 
@@ -143,7 +176,6 @@ export default function DomainsPage() {
     setDialogOpen(true)
   }
 
- 
   const getYearCounts = () => {
     const counts: Record<string, number> = { "All": studentsData.length }
     
@@ -163,7 +195,7 @@ export default function DomainsPage() {
       <main className="container mx-auto mt-8 p-4">
         <h1 className="text-3xl font-bold mb-6 text-[#f4b41a] pixel-font">Domains</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card className="bg-gray-900 border-gradient">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg text-white">Select Domain</CardTitle>
@@ -203,6 +235,34 @@ export default function DomainsPage() {
               </Select>
             </CardContent>
           </Card>
+
+          <Card className="bg-gray-900 border-gradient">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-white">Search Student</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search by email..."
+                  className="w-full bg-gray-800 text-white border-gray-700 pl-10"
+                  value={searchQuery}
+                  onChange={handleSearch}
+                />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                {searchQuery && (
+                  <Button
+                    variant="ghost" 
+                    size="sm"
+                    className="absolute right-1 top-1 h-8 w-8 p-0" 
+                    onClick={handleClearSearch}
+                  >
+                    ×
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Card className="bg-gray-900 border-gradient mb-6">
@@ -223,6 +283,21 @@ export default function DomainsPage() {
               <Info size={16} className="text-[#f4b41a]" />
               <span className="text-gray-300">Note: Scores are only displayed for MCQ sections</span>
             </div>
+            {searchQuery && (
+              <div className="mt-2 p-2 bg-blue-900/30 rounded flex items-center justify-between">
+                <span className="text-blue-300">
+                  Showing results for: <strong>{searchQuery}</strong>
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-blue-300 hover:text-white p-1 h-auto"
+                  onClick={handleClearSearch}
+                >
+                  Clear Search
+                </Button>
+              </div>
+            )}
           </CardHeader>
           
           {/* Year Tabs */}
@@ -252,7 +327,11 @@ export default function DomainsPage() {
                   {error && <p className="text-red-500 p-4 bg-red-900/20 rounded">{error}</p>}
                   {!loading && !error && filteredStudents.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-32 text-gray-400">
-                      <p>No students found for this domain, status, and year filter.</p>
+                      {searchQuery ? (
+                        <p>No students found matching "{searchQuery}".</p>
+                      ) : (
+                        <p>No students found for this domain, status, and year filter.</p>
+                      )}
                       <p className="text-sm mt-2">Try changing the filters or check back later.</p>
                     </div>
                   )}
@@ -361,20 +440,23 @@ export default function DomainsPage() {
                         <Button
                           onClick={() => handleStatusUpdate(selectedStudent.email, "qualified")}
                           className="bg-green-600 hover:bg-green-700 text-white"
+                          disabled={statusUpdateLoading}
                         >
-                          Qualified
+                          {statusUpdateLoading ? "Updating..." : "Qualified"}
                         </Button>
                         <Button
                           onClick={() => handleStatusUpdate(selectedStudent.email, "pending")}
                           className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                          disabled={statusUpdateLoading}
                         >
-                          Pending
+                          {statusUpdateLoading ? "Updating..." : "Pending"}
                         </Button>
                         <Button
                           onClick={() => handleStatusUpdate(selectedStudent.email, "unqualified")}
                           className="bg-red-600 hover:bg-red-700 text-white"
+                          disabled={statusUpdateLoading}
                         >
-                          Unqualified
+                          {statusUpdateLoading ? "Updating..." : "Unqualified"}
                         </Button>
                       </div>
                     </div>
