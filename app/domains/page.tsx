@@ -72,50 +72,42 @@ export default function DomainsPage() {
   }, [selectedDomain, selectedStatus])
 
   useEffect(() => {
-    // Filter by year and then sort whenever studentsData, selectedYear, or sortDirection changes
     filterAndSortStudents()
   }, [studentsData, selectedYear, sortDirection])
 
-  // Extract year from email (e.g., john21@example.com -> 2021)
   const extractYearFromEmail = (email: string): string => {
-    const matches = email.match(/(\d{2})@/) // Looks for two digits before @
+    const matches = email.match(/(\d{2})(?=[a-zA-Z]?@)/) 
     if (matches && matches[1]) {
       const year = matches[1]
-      // Assuming students with roll numbers like 21XXX are from 2021
       return `20${year}`
     }
     return "Unknown"
   }
 
-  // Sort students by score
   const sortStudentsByScore = (students: Student[], direction: "asc" | "desc"): Student[] => {
     return [...students].sort((a, b) => {
       const scoreA = a.score1 !== undefined ? a.score1 : -1
       const scoreB = b.score1 !== undefined ? b.score1 : -1
       
       return direction === "desc" 
-        ? scoreB - scoreA // Highest first
-        : scoreA - scoreB // Lowest first
+        ? scoreB - scoreA 
+        : scoreA - scoreB 
     })
   }
 
-  // Filter by year and sort by score
   const filterAndSortStudents = () => {
     let filtered = [...studentsData]
     
-    // Apply year filter if not "All"
     if (selectedYear !== "All") {
       filtered = filtered.filter(student => 
         extractYearFromEmail(student.email) === selectedYear
       )
     }
     
-    // Apply sorting
     const sorted = sortStudentsByScore(filtered, sortDirection)
     setFilteredStudents(sorted)
   }
 
-  // Toggle sort direction
   const toggleSortDirection = () => {
     const newDirection = sortDirection === "desc" ? "asc" : "desc"
     setSortDirection(newDirection)
@@ -151,7 +143,7 @@ export default function DomainsPage() {
     setDialogOpen(true)
   }
 
-  // Calculate year counts
+ 
   const getYearCounts = () => {
     const counts: Record<string, number> = { "All": studentsData.length }
     
