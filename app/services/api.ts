@@ -13,14 +13,15 @@ export interface Question {
   image_url?: string; 
 }
 
-// Updated interface to explicitly include all required fields
 export interface Student {
   email: string;
-  name: string;
+  name?: string;
   domain: string;
   status: string;
+  qualification_status1?: string;
   round1: Question[];
   score1: number;
+  round2?: string[]; 
   options?: string[];
 }
 
@@ -96,10 +97,9 @@ const ProtectedRequest = async <T = unknown>(
   }
 };
 
-// Updated interface to explicitly include score1
 interface DomainData {
-  content: {
-    items: Student[];  // Using the Student interface that includes score1
+  data: {
+    items: Student[];  
     last_evaluated_key: string;
   };
 }
@@ -117,26 +117,33 @@ export async function fetchDomainData(
   status: string,
   last_evaluated_key: string
 ): Promise<DomainData> {
-  // Make sure we explicitly request score1 in the query params if needed
+  
   const response = await ProtectedRequest<DomainData>(
     "GET",
     "/admin/fetch",
     null,
-    { domain, round, status, last_evaluated_key, include_score: true }
+    { 
+      domain, 
+      round, 
+      status, 
+      last_evaluated_key, 
+      include_score: true,
+      include_round2: true  
+    }
   );
+  console.log("Calling fetchDomainData with:");
+
+  console.log(response.data.items);
   
-  // Log the response to debug if score1 is present
-  console.log("Domain data response:", response.data);
-  
-  return response.data;
+  return response;
 }
 
 export async function submitStatus(
   user_email: string,
   domain: string,
-  status: string
+  status: string,
+  round: number = 1 // Default to round 1, but allow specifying round
 ): Promise<StatusData> {
-  const round = 1;
   return await ProtectedRequest<StatusData>(
     "POST",
     "/admin/qualify",
