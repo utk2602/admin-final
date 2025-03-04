@@ -221,9 +221,9 @@ export default function DomainsPage() {
                   <thead>
                     <tr className="bg-gray-800 text-left">
                       <th className="p-3 font-semibold">Email</th>
-                      <th className="p-3 font-semibold">Year</th>
+                      <th className="p-3 font-semibold">   </th>
                       <th className="p-3 font-semibold">Score</th>
-                      <th className="p-3 font-semibold">Status</th>
+                      <th className="p-3 font-semibold">      </th>
                       <th className="p-3 font-semibold">Actions</th>
                     </tr>
                   </thead>
@@ -253,20 +253,7 @@ export default function DomainsPage() {
                             )}
                           </td>
                           <td className="p-3">
-                            <span
-                              className={`px-2 py-1 rounded text-xs ${
-                                student.qualification_status1 === "qualified"
-                                  ? "bg-green-900 text-green-300"
-                                  : student.qualification_status1 === "pending"
-                                  ? "bg-yellow-900 text-yellow-300"
-                                  : student.qualification_status1 ===
-                                    "unqualified"
-                                  ? "bg-red-900 text-red-300"
-                                  : "bg-gray-800 text-gray-300"
-                              }`}
-                            >
-                              {student.qualification_status1 || "unmarked"}
-                            </span>
+                            
                           </td>
                           <td className="p-3">
                             <Button

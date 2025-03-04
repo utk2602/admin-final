@@ -142,7 +142,7 @@ export async function submitStatus(
   user_email: string,
   domain: string,
   status: string,
-  round: number = 1 // Default to round 1, but allow specifying round
+  round: number = 2 // Default to round 1, but allow specifying round
 ): Promise<StatusData> {
   return await ProtectedRequest<StatusData>(
     "POST",
